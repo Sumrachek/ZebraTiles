@@ -29,6 +29,18 @@ module Config {
     //! Garmin's own data field labels use. FONT_XTINY here is only 13 px.
     const LABEL_FONT = Graphics.FONT_SMALL;
 
+    //! Height of the visible glyph block - capitals and digits, cap line to
+    //! baseline - as a fraction of the font's reported ascent. The gap between the
+    //! two is what makes box-centred text look too high, and the device's two font
+    //! families differ enough that one number will not do: DejaVu Fitness for the
+    //! number fonts, Roboto Condensed for everything else.
+    //!
+    //! Calibrated against device renders rather than taken from the typeface, so
+    //! these also absorb the half-pixel rounding of the band centres. Re-measure by
+    //! screenshotting the simulator and comparing glyph bounds to tile bounds.
+    const CAP_RATIO_NUMBER = 0.87;
+    const CAP_RATIO_TEXT = 0.69;
+
     // Geometry. STATUS_H and HEADER_H are both exactly LABEL_FONT's height.
     const STATUS_H = 22;
     const HEADER_H = 22;

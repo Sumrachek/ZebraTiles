@@ -135,8 +135,8 @@ class ZebraTilesView extends WatchUi.DataField {
         var text = Fields.textFor(cell, mMetrics);
         var font = pickFont(dc, text, w - (2 * Config.PAD), valueH);
         dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x + (w / 2), y + headerH + (valueH / 2), font, text,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        drawCentered(dc, x + (w / 2), y + headerH + (valueH / 2), font, text,
+            Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! Label, and for zoned tiles the zone badge, centred together as one group.
@@ -168,13 +168,12 @@ class ZebraTilesView extends WatchUi.DataField {
         var mid = y + (h / 2);
 
         dc.setColor(Config.HEADER_FG, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(start, mid, font, label,
-            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        drawCentered(dc, start, mid, font, label, Graphics.TEXT_JUSTIFY_LEFT);
 
         if (badge != null) {
             dc.setColor(Config.ZONE_FG, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(start + labelW + gap, mid, font, badge,
-                Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+            drawCentered(dc, start + labelW + gap, mid, font, badge,
+                Graphics.TEXT_JUSTIFY_LEFT);
         }
     }
 
@@ -190,20 +189,47 @@ class ZebraTilesView extends WatchUi.DataField {
             var text = Fields.textFor(row.cells[i], mMetrics);
             var font = fitLabelFont(dc, text, cellW - (2 * Config.PAD), h);
 
-            if (n == 1) {
-                dc.drawText(left + (cellW / 2), mid, font, text,
-                    Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-            } else if (i == 0) {
-                dc.drawText(left + Config.PAD, mid, font, text,
-                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
-            } else if (i == n - 1) {
-                dc.drawText(left + cellW - Config.PAD, mid, font, text,
-                    Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
-            } else {
-                dc.drawText(left + (cellW / 2), mid, font, text,
-                    Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            var justify = Graphics.TEXT_JUSTIFY_CENTER;
+            var anchor = left + (cellW / 2);
+            if (n > 1 && i == 0) {
+                justify = Graphics.TEXT_JUSTIFY_LEFT;
+                anchor = left + Config.PAD;
+            } else if (n > 1 && i == n - 1) {
+                justify = Graphics.TEXT_JUSTIFY_RIGHT;
+                anchor = left + cellW - Config.PAD;
+            }
+            drawCentered(dc, anchor, mid, font, text, justify);
+        }
+    }
+
+    //! Draws text whose glyphs, not whose font box, sit on the centre line.
+    //!
+    //! TEXT_JUSTIFY_VCENTER centres the font box. That box is padded on both sides
+    //! of the visible glyphs: descender space below the baseline, and the gap
+    //! between the cap line and the ascent line above. Neither is used by digits or
+    //! capitals, and the descender is the larger of the two, so centring the box
+    //! leaves the text sitting high. This works out where the glyph block actually
+    //! is and puts its centre on the anchor.
+    hidden function drawCentered(dc as Dc, x as Number, centerY as Number, font as FontDefinition, text as String, justify as Number) as Void {
+        var ascent = Graphics.getFontAscent(font);
+        var descent = Graphics.getFontDescent(font);
+        var glyphH = ascent * capRatio(font);
+
+        // Box centre sits (ascent - descent) / 2 above the baseline; the glyph
+        // block's centre sits glyphH / 2 above it. Offset the anchor by the gap.
+        var y = centerY - ((ascent - descent) / 2.0) + (glyphH / 2.0);
+        dc.drawText(x, (y + 0.5).toNumber(), font, text, justify | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    //! The number fonts carry only digits and punctuation, and their glyphs fill
+    //! more of the ascent than Roboto Condensed capitals do.
+    hidden function capRatio(font as FontDefinition) as Float {
+        for (var i = 0; i < mNumberFonts.size(); i++) {
+            if (mNumberFonts[i] == font) {
+                return Config.CAP_RATIO_NUMBER;
             }
         }
+        return Config.CAP_RATIO_TEXT;
     }
 
     //! Largest chrome font that fits, for headers and the status strip alike.
