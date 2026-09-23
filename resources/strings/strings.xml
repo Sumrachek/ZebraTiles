@@ -1,0 +1,7 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="AppName">ZebraTiles</string>
+    <string id="SettingFtp">FTP, W</string>
+    <string id="SettingFtpPrompt">Used for power zones. The Edge cannot share its own power zones with Connect IQ.</string>
+    <string id="SettingLayout">Layout</string>
+    <string id="SettingLayoutPrompt">Rows separated by ";", fields by spaces. Wrap a row in "=" for the status strip. Empty = built-in layout.</string>
+</strings>

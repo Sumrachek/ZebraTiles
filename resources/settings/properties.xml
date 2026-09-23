@@ -1,0 +1,4 @@
+<properties>
+    <property id="ftp" type="number">200</property>
+    <property id="layout" type="string"></property>
+</properties>

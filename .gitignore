@@ -1,0 +1,9 @@
+# Build output
+bin/
+
+# Connect IQ signing key - regenerate with
+# VS Code "Monkey C: Generate a Developer Key" if you need a fresh one
+developer_key
+
+# macOS
+.DS_Store
