@@ -166,19 +166,41 @@ class ZebraTilesView extends WatchUi.DataField {
             fill = Config.VALUE_BG;
         }
 
-        dc.setColor(mHeaderBg, mHeaderBg);
-        dc.fillRectangle(x, y, w, headerH);
+        if (headerIsPainted()) {
+            dc.setColor(mHeaderBg, mHeaderBg);
+            dc.fillRectangle(x, y, w, headerH);
+            dc.setColor(fill, fill);
+            dc.fillRectangle(x, y + headerH, w, valueH);
+            drawEdgeHints(dc, kind, input, zone, x, y + headerH, w, valueH);
+        } else {
+            // No header strip: the fill owns the whole tile and the label rides on
+            // top of it. A hairline rule takes over the job of separating rows -
+            // except on the top row, which has nothing above it to be separated from.
+            dc.setColor(fill, fill);
+            dc.fillRectangle(x, y, w, h);
+            drawEdgeHints(dc, kind, input, zone, x, y, w, h);
+            if (y > 0) {
+                dc.setColor(Config.HEADER_RULE, Config.HEADER_RULE);
+                dc.fillRectangle(x, y, w, 1);
+            }
+        }
         drawHeader(dc, Fields.labelFor(cell), Zones.badgeFor(kind, zone), x, y, w, headerH);
-
-        dc.setColor(fill, fill);
-        dc.fillRectangle(x, y + headerH, w, valueH);
-        drawEdgeHints(dc, kind, input, zone, x, y + headerH, w, valueH);
 
         var text = Fields.textFor(cell, mMetrics);
         var font = pickFont(dc, text, w - (2 * Config.PAD), valueH);
+        var middle = y + headerH + (valueH / 2);
+        if (!headerIsPainted()) {
+            middle -= Config.HEADERLESS_VALUE_LIFT;
+        }
         dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
-        drawCentered(dc, x + (w / 2), y + headerH + (valueH / 2), font, text,
-            Graphics.TEXT_JUSTIFY_CENTER);
+        drawCentered(dc, x + (w / 2), middle, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    //! Colours outside the 24-bit range mean "do not paint the header strip".
+    //! That covers both Graphics.COLOR_TRANSPARENT, which is -1, and the
+    //! 0xFF000000 spelling, since Monkey C colours carry no alpha channel.
+    hidden function headerIsPainted() as Boolean {
+        return mHeaderBg >= 0 && mHeaderBg <= 0xFFFFFF;
     }
 
     //! Stripes of the neighbouring zones' colours, creeping in from whichever side
@@ -242,7 +264,10 @@ class ZebraTilesView extends WatchUi.DataField {
         drawCentered(dc, start, mid, font, label, Graphics.TEXT_JUSTIFY_LEFT);
 
         if (badge != null) {
-            dc.setColor(Config.ZONE_FG, Graphics.COLOR_TRANSPARENT);
+            // Without a header strip the badge sits on the zone fill, the same
+            // surface the value does, so it takes the value's colour to stay legible.
+            var badgeColor = headerIsPainted() ? Config.ZONE_FG : Config.VALUE_FG;
+            dc.setColor(badgeColor, Graphics.COLOR_TRANSPARENT);
             drawCentered(dc, start + labelW + gap, mid, font, badge,
                 Graphics.TEXT_JUSTIFY_LEFT);
         }

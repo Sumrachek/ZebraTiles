@@ -185,6 +185,26 @@ lists and text, and a list would have boxed you into whatever swatches were pick
 `Config.HEADER_BG` and `Config.HEADER_FG` are the defaults, used whenever the setting is
 empty or will not parse.
 
+**Setting `HEADER_BG` to `Config.HEADER_BG_NONE` switches the header off entirely.** The
+zone fill then runs the full height of the tile with the label riding on top of it, and
+rows are separated by a one-pixel rule in `Config.HEADER_RULE` rather than by a strip of
+contrasting background. The top row gets no rule, having nothing above it to be separated
+from. Any value outside the 24-bit colour range triggers this, `Graphics.COLOR_TRANSPARENT`
+included — Monkey C colours carry no alpha, so "transparent" has to be a sentinel.
+
+One layout tweak comes with the mode: the value is raised by
+`Config.HEADERLESS_VALUE_LIFT`. With no strip the tile reads as a single block, and a value
+centred in the band below the label sits closer to the bottom edge than to the label —
+measured on device, 12.6 px of air above the digits against 4.0 px below. The lift evens
+that out.
+
+The zone badge follows suit automatically: with no strip beneath it, it sits on the same
+surface as the value, so it switches from `ZONE_FG` to `VALUE_FG`. `HEADER_FG` does not —
+it stays whatever you set, so a light grey tuned for a dark strip will nearly vanish
+against the zone colour. Expect to darken it in this mode.
+This mode is reachable only from `Config`: the colour setting parses six hex digits, which
+cannot express the sentinel.
+
 **Zone edges announce themselves.** As a value drifts towards the edge of its zone, a
 stripe of the neighbouring zone's colour creeps in from that side of the tile — right for
 the upper threshold, left for the lower one. It starts once the value is within

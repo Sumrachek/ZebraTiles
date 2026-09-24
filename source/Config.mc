@@ -11,14 +11,30 @@ module Config {
         "3s_PWR\n" +
         "SPD HR\n" +
         "CAD ALT\n" +
+        "LAP_SPD LAP_DIST\n" +
         "LAP_PWR LAP_TIME\n" +
         "= day_time_24 dist temp_c =";
 
     const DEFAULT_FTP = 200;
 
     // Chrome
-    const HEADER_BG = 0x424242;
-    const HEADER_FG = 0xBDBDBD;
+    const HEADER_BG = -1;
+    const HEADER_FG = 0x444444;
+    //! Set HEADER_BG to this - or to any value outside the 24-bit colour range,
+    //! Graphics.COLOR_TRANSPARENT included - and the header strip is not painted
+    //! at all. The zone fill then runs the full height of the tile, with the label
+    //! sitting on top of it, and rows are separated by a hairline rule instead.
+    const HEADER_BG_NONE = 0xFF000000;
+    const HEADER_RULE = 0xaaaaaa;
+
+    //! Raises the value by this many pixels when the header strip is off.
+    //! Without a strip the whole tile reads as one block, and a value centred in
+    //! the band below the label ends up nearer the bottom edge than the label:
+    //! measured on device, 12.6 px of air above the digits against 4.0 px below.
+    //! Lifting by 4 evens that out. Raise it further to make the value read as
+    //! attached to its label rather than floating between the two edges.
+    const HEADERLESS_VALUE_LIFT = 4;
+
     const ZONE_FG = 0xFFFFFF;
     const VALUE_BG = 0xFFFFFF;
     const VALUE_FG = 0x000000;
