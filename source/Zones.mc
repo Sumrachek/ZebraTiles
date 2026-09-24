@@ -73,6 +73,91 @@ module Zones {
         return 2;
     }
 
+    //! How many zones the scale has, which is also the top zone's number.
+    function count(kind as Number) as Number {
+        if (kind == Fields.Z_HR) { return 5; }
+        if (kind == Fields.Z_CAD) { return 3; }
+        return Config.PWR_PCT.size() + 1;
+    }
+
+    //! The value at which a zone begins. Always finite: nothing here goes below
+    //! zero, even where no zone sits underneath.
+    function lowerEdge(kind as Number, zone as Number) as Numeric {
+        if (kind == Fields.Z_HR) {
+            var z = mHrZones;
+            return (z != null && z.size() >= 6) ? z[zone - 1] : 0;
+        }
+        if (kind == Fields.Z_CAD) {
+            if (zone == 1) { return 0; }
+            return (zone == 2) ? mCadMin : mCadMax;
+        }
+        return (zone == 1) ? 0 : mFtp * Config.PWR_PCT[zone - 2];
+    }
+
+    //! The value at which a zone ends, or null for the open-ended top zone.
+    function upperEdge(kind as Number, zone as Number) as Numeric? {
+        if (kind == Fields.Z_HR) {
+            var z = mHrZones;
+            return (z != null && z.size() >= 6) ? z[zone] : null;
+        }
+        if (kind == Fields.Z_CAD) {
+            if (zone == 1) { return mCadMin; }
+            return (zone == 2) ? mCadMax : null;
+        }
+        return (zone > Config.PWR_PCT.size()) ? null : mFtp * Config.PWR_PCT[zone - 1];
+    }
+
+    //! The zone's width, used to size the 10 % approach band. The top zone has no
+    //! width of its own, so it borrows the one below it.
+    function span(kind as Number, zone as Number) as Numeric {
+        var upper = upperEdge(kind, zone);
+        if (upper != null) {
+            return upper - lowerEdge(kind, zone);
+        }
+        if (zone <= 1) {
+            return 0;
+        }
+        var below = upperEdge(kind, zone - 1);
+        return (below != null) ? below - lowerEdge(kind, zone - 1) : 0;
+    }
+
+    //! 0.0 well inside the zone, rising to 1.0 at the upper threshold. Zero when
+    //! there is no zone above to warn about.
+    function upperHint(kind as Number, value as Numeric?, zone as Number?) as Numeric {
+        if (value == null || zone == null || zone >= count(kind)) {
+            return 0.0;
+        }
+        var upper = upperEdge(kind, zone);
+        var width = span(kind, zone);
+        if (upper == null || width <= 0) {
+            return 0.0;
+        }
+        var trigger = upper - (width * Config.HINT_TRIGGER);
+        if (value <= trigger || upper <= trigger) {
+            return 0.0;
+        }
+        var t = (value - trigger) / (upper - trigger);
+        return (t > 1.0) ? 1.0 : t;
+    }
+
+    //! The mirror image, for the lower threshold.
+    function lowerHint(kind as Number, value as Numeric?, zone as Number?) as Numeric {
+        if (value == null || zone == null || zone <= 1) {
+            return 0.0;
+        }
+        var lower = lowerEdge(kind, zone);
+        var width = span(kind, zone);
+        if (width <= 0) {
+            return 0.0;
+        }
+        var trigger = lower + (width * Config.HINT_TRIGGER);
+        if (value >= trigger || trigger <= lower) {
+            return 0.0;
+        }
+        var t = (trigger - value) / (trigger - lower);
+        return (t > 1.0) ? 1.0 : t;
+    }
+
     //! The badge only means something where the zones are numbered. Cadence
     //! bands are not zones, so those tiles carry the colour and no badge.
     function badgeFor(kind as Number, zone as Number?) as String? {

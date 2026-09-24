@@ -58,6 +58,13 @@ module Config {
     const CAP_RATIO_TEXT = 0.88;
 
 
+    //! Edge hints: as a value drifts towards the edge of its zone, a stripe of the
+    //! neighbouring zone's colour creeps in from that side of the tile - right for
+    //! the upper threshold, left for the lower one. A warning that you are about
+    //! to change zone, readable without reading the number.
+    const HINT_TRIGGER = 0.10;    //!< Starts this far into the zone, as a fraction of its span.
+    const HINT_MAX_WIDTH = 0.20;  //!< Width at the threshold itself, as a fraction of the tile.
+
     // Geometry. STATUS_H and HEADER_H are both exactly LABEL_FONT's height.
     const STATUS_H = 22;
     const HEADER_H = 22;

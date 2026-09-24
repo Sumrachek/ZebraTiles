@@ -159,7 +159,8 @@ class ZebraTilesView extends WatchUi.DataField {
         var valueH = h - headerH;
 
         var kind = Fields.zoneKind(cell.code);
-        var zone = Zones.of(kind, Fields.zoneInput(cell.code, mMetrics));
+        var input = Fields.zoneInput(cell.code, mMetrics);
+        var zone = Zones.of(kind, input);
         var fill = Zones.colorFor(kind, zone);
         if (fill == null) {
             fill = Config.VALUE_BG;
@@ -171,12 +172,43 @@ class ZebraTilesView extends WatchUi.DataField {
 
         dc.setColor(fill, fill);
         dc.fillRectangle(x, y + headerH, w, valueH);
+        drawEdgeHints(dc, kind, input, zone, x, y + headerH, w, valueH);
 
         var text = Fields.textFor(cell, mMetrics);
         var font = pickFont(dc, text, w - (2 * Config.PAD), valueH);
         dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, x + (w / 2), y + headerH + (valueH / 2), font, text,
             Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    //! Stripes of the neighbouring zones' colours, creeping in from whichever side
+    //! the value is drifting towards. Drawn over the fill but before the text, so
+    //! the number stays on top of them.
+    hidden function drawEdgeHints(dc as Dc, kind as Number, value as Numeric?, zone as Number?, x as Number, y as Number, w as Number, h as Number) as Void {
+        if (zone == null) {
+            return;
+        }
+        var widest = w * Config.HINT_MAX_WIDTH;
+
+        var rising = Zones.upperHint(kind, value, zone);
+        if (rising > 0) {
+            var band = (widest * rising).toNumber();
+            var color = Zones.colorFor(kind, zone + 1);
+            if (band > 0 && color != null) {
+                dc.setColor(color, color);
+                dc.fillRectangle(x + w - band, y, band, h);
+            }
+        }
+
+        var falling = Zones.lowerHint(kind, value, zone);
+        if (falling > 0) {
+            var band = (widest * falling).toNumber();
+            var color = Zones.colorFor(kind, zone - 1);
+            if (band > 0 && color != null) {
+                dc.setColor(color, color);
+                dc.fillRectangle(x, y, band, h);
+            }
+        }
     }
 
     //! Label, and for zoned tiles the zone badge, centred together as one group.

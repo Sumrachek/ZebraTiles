@@ -25,6 +25,9 @@ A few things worth knowing before you choose:
 - **Zone tinting applies to instantaneous fields only** — current and rolling power, heart
   rate, cadence, the zone numbers and the percentages. Averages, maxima and lap figures
   stay on the plain background, because a colour there would read as your present effort.
+- **Tinted tiles warn you before the zone changes.** A stripe of the next zone's colour
+  slides in from the right as you approach the upper threshold, and from the left as you
+  approach the lower one, widening the closer you get.
 - **Fill in your FTP and your cadence range** in the app settings. The Edge cannot share
   its power zones with Connect IQ, so every power zone is derived from your FTP; the
   cadence colours come from the range.

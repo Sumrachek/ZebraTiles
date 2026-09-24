@@ -185,6 +185,15 @@ lists and text, and a list would have boxed you into whatever swatches were pick
 `Config.HEADER_BG` and `Config.HEADER_FG` are the defaults, used whenever the setting is
 empty or will not parse.
 
+**Zone edges announce themselves.** As a value drifts towards the edge of its zone, a
+stripe of the neighbouring zone's colour creeps in from that side of the tile — right for
+the upper threshold, left for the lower one. It starts once the value is within
+`Config.HINT_TRIGGER` of the edge (10 % of the zone's span) and grows linearly to
+`Config.HINT_MAX_WIDTH` of the tile (20 %) at the threshold itself. The top and bottom
+zones have nothing beyond them, so they get no stripe on that side; the open-ended top
+zone borrows the zone below it for the span it lacks. Stripes are drawn over the fill but
+before the value, so the number stays legible on top.
+
 **Cadence is tinted too, but on a different kind of scale.** Power and heart rate are
 monotonic — more is harder — so an intensity ramp reads correctly. Cadence is not: low
 means grinding, high means spinning out, and the good place is in between. It therefore
