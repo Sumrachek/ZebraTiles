@@ -17,8 +17,8 @@ module Config {
     const DEFAULT_FTP = 200;
 
     // Chrome
-    const HEADER_BG = 0x000000;
-    const HEADER_FG = 0xAAAAAA;
+    const HEADER_BG = 0x424242;
+    const HEADER_FG = 0xBDBDBD;
     const ZONE_FG = 0xFFFFFF;
     const VALUE_BG = 0xFFFFFF;
     const VALUE_FG = 0x000000;

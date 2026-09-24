@@ -93,7 +93,7 @@ source/
   ZebraTilesView.mc       all drawing: rows, tiles, headers, status strip, font fitting
   ZebraTilesApp.mc        app entry point, reloads settings on change
 resources/
-  settings/properties.xml defaults for the `ftp`, cadence range and `layout` properties
+  settings/properties.xml defaults for the `ftp`, cadence, header colour and layout settings
   settings/settings.xml   how those properties appear in Garmin Connect Mobile
   strings/strings.xml     app name and setting labels
   drawables/              launcher icon
@@ -178,6 +178,12 @@ through `Weather`, `SensorHistory` or `System.Stats` therefore goes through a `h
 
 Palettes live in `Config.mc`: 5 heart-rate zones and 7 power zones, grey → blue → green →
 yellow → orange → red.
+
+The header strip's own two colours — background and label text — are app settings, typed
+as `RRGGBB` hex (a leading `#` is accepted). Connect IQ settings have no colour type, only
+lists and text, and a list would have boxed you into whatever swatches were picked here.
+`Config.HEADER_BG` and `Config.HEADER_FG` are the defaults, used whenever the setting is
+empty or will not parse.
 
 **Cadence is tinted too, but on a different kind of scale.** Power and heart rate are
 monotonic — more is harder — so an intensity ramp reads correctly. Cadence is not: low

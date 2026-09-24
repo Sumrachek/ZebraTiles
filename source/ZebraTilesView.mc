@@ -8,6 +8,8 @@ class ZebraTilesView extends WatchUi.DataField {
 
     hidden var mRows as Array<Row>;
     hidden var mMetrics as Metrics;
+    hidden var mHeaderBg as Number = Config.HEADER_BG;
+    hidden var mHeaderFg as Number = Config.HEADER_FG;
 
     // Ordered widest-first so the first fit is the biggest that fits.
     hidden var mNumberFonts as Array<FontDefinition> = [
@@ -41,6 +43,8 @@ class ZebraTilesView extends WatchUi.DataField {
     //! Re-read the app settings. Called on start and whenever they change.
     function reload() as Void {
         Zones.reload();
+        mHeaderBg = colorSetting("headerBg", Config.HEADER_BG);
+        mHeaderFg = colorSetting("headerFg", Config.HEADER_FG);
 
         var text = null;
         try {
@@ -52,6 +56,42 @@ class ZebraTilesView extends WatchUi.DataField {
             text = Config.DEFAULT_LAYOUT;
         }
         mRows = Spec.parse(text as String);
+    }
+
+    //! Colours arrive as hex text - "2B2B2B", or "#2B2B2B" - so they can be typed
+    //! into the phone app, which offers no colour picker. Anything unparseable
+    //! falls back to the built-in value rather than painting a surprise colour.
+    hidden function colorSetting(key as String, fallback as Number) as Number {
+        var raw = null;
+        try {
+            raw = Application.Properties.getValue(key);
+        } catch (e) {
+            raw = null;
+        }
+        if (!(raw instanceof Lang.String)) {
+            return fallback;
+        }
+        return parseColor(raw as String, fallback);
+    }
+
+    hidden function parseColor(input as String, fallback as Number) as Number {
+        var text = input;
+        if (text.length() == 7) {
+            var head = text.substring(0, 1);
+            var body = text.substring(1, 7);
+            if (head != null && body != null && head.equals("#")) {
+                text = body;
+            }
+        }
+        if (text.length() != 6) {
+            return fallback;
+        }
+
+        var value = text.toNumberWithBase(16);
+        if (value == null || value < 0 || value > 0xFFFFFF) {
+            return fallback;
+        }
+        return value;
     }
 
     function compute(info as Activity.Info) as Void {
@@ -125,7 +165,7 @@ class ZebraTilesView extends WatchUi.DataField {
             fill = Config.VALUE_BG;
         }
 
-        dc.setColor(Config.HEADER_BG, Config.HEADER_BG);
+        dc.setColor(mHeaderBg, mHeaderBg);
         dc.fillRectangle(x, y, w, headerH);
         drawHeader(dc, Fields.labelFor(cell), Zones.badgeFor(kind, zone), x, y, w, headerH);
 
@@ -166,7 +206,7 @@ class ZebraTilesView extends WatchUi.DataField {
         }
         var mid = y + (h / 2);
 
-        dc.setColor(Config.HEADER_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mHeaderFg, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, start, mid, font, label, Graphics.TEXT_JUSTIFY_LEFT);
 
         if (badge != null) {

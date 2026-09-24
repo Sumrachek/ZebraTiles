@@ -5,6 +5,9 @@
     <string id="SettingCadenceMin">Cadence target, low</string>
     <string id="SettingCadenceMax">Cadence target, high</string>
     <string id="SettingCadencePrompt">The cadence tile is green inside this range, blue below it and orange above.</string>
+    <string id="SettingHeaderBg">Header background</string>
+    <string id="SettingHeaderFg">Header text</string>
+    <string id="SettingColorPrompt">Hex colour, RRGGBB. A leading # is allowed. Anything else falls back to the built-in colour.</string>
     <string id="SettingLayout">Layout</string>
     <string id="SettingLayoutPrompt">Rows separated by ";", fields by spaces. Wrap a row in "=" for the status strip. Empty = built-in layout.</string>
 </strings>
