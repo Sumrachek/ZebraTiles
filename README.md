@@ -54,27 +54,21 @@ Rules:
 
 ### Supported tokens
 
-| Token | Header | Value | Zone tint |
-|---|---|---|---|
-| `3s_pwr` | `3s PWR` | 3-second average power, W | power |
-| `pwr` | `PWR` | instantaneous power, W | power |
-| `lap_pwr` | `LAP PWR` | average power since the last lap, W | power |
-| `hr` | `HR` | heart rate, bpm | heart rate |
-| `cad` | `CAD` | cadence, rpm | — |
-| `spd` | `SPD` | speed, km/h (one decimal below 10) | — |
-| `grd` | `GRD %` | grade, % | — |
-| `lap_time` | `LAP TIME` | time since the last lap, `mm:ss` or `h:mm:ss` | — |
-| `day_time_24` | `TIME` | wall clock, 24 h | — |
-| `dist` | `DIST` | activity distance, km | — |
-| `temp_c` | `TEMP` | ambient temperature, °C | — |
+**[FIELDS.md](FIELDS.md) is the reference to open when you are putting a layout
+together.** It lists all 87 tokens with what each one shows, grouped by power, heart rate,
+cadence, speed and distance, time, elevation, navigation, drivetrain, weather and device
+status, and it says which ones need a power meter, a loaded course, a paired phone or a
+setting filled in.
 
-Missing data renders as `--`.
+Missing data renders as `--`, and an unrecognised token renders as its own name with a
+`?` value, so typos are visible rather than silent.
 
 ### Changing the layout
 
 Two ways, and the second wins when it is non-empty:
 
-1. Edit `DEFAULT_LAYOUT` in `source/Config.mc` and rebuild.
+1. Edit `DEFAULT_LAYOUT` in `source/Config.mc` and rebuild. Tokens are listed in
+   [FIELDS.md](FIELDS.md).
 2. Set the **Layout** app setting from Garmin Connect Mobile. That input is single-line,
    so separate rows with `;`:
    `3s_pwr; spd hr; cad grd; lap_pwr lap_time; = day_time_24 dist temp_c =`
@@ -94,6 +88,7 @@ source/
   Spec.mc                 layout-text parser -> Row / Cell objects
   Fields.mc               token registry: code, header label, value formatting, zone kind
   Metrics.mc              per-second data collection and derived values
+  Lap.mc                  per-lap accumulators, current and previous lap
   Zones.mc                zone lookup and zone -> colour mapping
   ZebraTilesView.mc       all drawing: rows, tiles, headers, status strip, font fitting
   ZebraTilesApp.mc        app entry point, reloads settings on change
@@ -142,17 +137,32 @@ The interesting seams:
 
 ## Derived metrics, and why
 
-Three values in the mock are not available from the API and are computed here:
+Connect IQ hands over about half of what a native Garmin data screen shows. The rest is
+reconstructed in `Metrics`:
 
 - **Grade** — `Activity.Info` has no grade field at all. It is differentiated over
   *distance* rather than time (20 m window, exponentially smoothed), so the value does not
   blow up when the bike stops.
-- **Lap power / lap time** — data fields get no lap API, only an `onTimerLap()` callback.
-  Power is accumulated while the timer is running and the accumulators reset on lap and on
-  activity reset.
+- **VAM** — climb rate over a 30 s altitude window, so flat ground reads zero instead of
+  jittering with every barometric wobble.
+- **Everything per-lap** — data fields get no lap API, only an `onTimerLap()` callback.
+  `Lap` tallies power, heart rate, cadence, distance, ascent and descent, and the previous
+  lap is kept whole so the `LAST_*` fields have something to show.
+- **Rolling power** — one 30-slot ring buffer serves the 3 / 5 / 10 / 30 s averages.
+- **NP, IF, TSS, kJ** — normalized power is the fourth-power mean of the 30 s rolling
+  average. The running total is scaled down by 100 W so it stays inside a Float; IF and
+  TSS follow from it and the FTP setting.
 - **Temperature** — data fields are **not permitted to call `Sensor.getInfo()`**; doing so
   crashes the field with *"Symbol 'getInfo' not available to 'Data Field'"*. The device
   thermometer is read through `SensorHistory` instead, once every 10 seconds.
+- **Battery and weather** — polled on their own timers rather than at 1 Hz.
+
+### Optional API members need `has`
+
+The SDK documents members that a Connect IQ 3.3 device does not actually carry, and
+touching a missing symbol is a hard crash, not a null. `Weather.dewPoint` is documented
+and absent on the Edge 530 — it took the field down on first run. Anything reached
+through `Weather`, `SensorHistory` or `System.Stats` therefore goes through a `has` check.
 
 ## Zones
 
@@ -166,6 +176,12 @@ Three values in the mock are not available from the API and are computed here:
 
 Palettes live in `Config.mc`: 5 heart-rate zones and 7 power zones, grey → blue → green →
 yellow → orange → red.
+
+Only instantaneous fields are tinted — current and rolling power, heart rate, the zone
+numbers, and the percentages (`% FTP`, `% MAX HR`, `% HRR`, `W/KG`), which are just the
+current value measured against a reference. Averages, maxima, lap and whole-ride figures
+render on the plain background, because a colour there reads as present effort and would
+be misleading.
 
 ---
 

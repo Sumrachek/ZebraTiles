@@ -9,11 +9,15 @@ module Zones {
 
     var mHrZones as Array<Number>? = null;
     var mHrChecked as Boolean = false;
+    var mProfile as UserProfile.Profile? = null;
+    var mProfileChecked as Boolean = false;
     var mFtp as Number = Config.DEFAULT_FTP;
 
     function reload() as Void {
         mHrZones = null;
         mHrChecked = false;
+        mProfile = null;
+        mProfileChecked = false;
 
         var ftp = null;
         try {
@@ -71,6 +75,44 @@ module Zones {
             }
         }
         return zone;
+    }
+
+    //! FTP from the app settings; there is no way to read the device's own.
+    function ftp() as Number {
+        return mFtp;
+    }
+
+    //! The top of zone 5 is the profile's maximum heart rate.
+    function maxHr() as Number? {
+        hrZone(0);
+        var z = mHrZones;
+        return (z != null && z.size() >= 6) ? z[5] : null;
+    }
+
+    function restingHr() as Number? {
+        var p = profile();
+        return (p != null) ? p.restingHeartRate : null;
+    }
+
+    //! Profile weight is in grams.
+    function weightKg() as Numeric? {
+        var p = profile();
+        if (p == null || p.weight == null) {
+            return null;
+        }
+        return (p.weight as Numeric) / 1000.0;
+    }
+
+    function profile() as UserProfile.Profile? {
+        if (!mProfileChecked) {
+            mProfileChecked = true;
+            try {
+                mProfile = UserProfile.getProfile();
+            } catch (e) {
+                mProfile = null;
+            }
+        }
+        return mProfile;
     }
 
     function powerZone(watts as Numeric) as Number {

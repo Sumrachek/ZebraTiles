@@ -10,7 +10,7 @@ module Config {
     const DEFAULT_LAYOUT =
         "3s_PWR\n" +
         "SPD HR\n" +
-        "CAD GRD\n" +
+        "CAD ALT\n" +
         "LAP_PWR LAP_TIME\n" +
         "= day_time_24 dist temp_c =";
 
@@ -50,6 +50,17 @@ module Config {
     // Garmin-style zone colors: Z1 grey, then blue / green / yellow / orange / red.
     const HR_COLORS = [0x9A9A9A, 0x3399FF, 0x55CC55, 0xFF9900, 0xFF3322];
     const PWR_COLORS = [0x9A9A9A, 0x3399FF, 0x55CC55, 0xFFCC33, 0xFF9900, 0xFF3322, 0xCC0055];
+
+    // Derived metrics
+    const PWR_WINDOW = 30;       //!< Longest rolling power window, seconds. Also the NP window.
+    const VAM_WINDOW = 30;       //!< Climb rate is measured over this many seconds.
+    const GRADE_SPAN_M = 20.0;   //!< Grade is differentiated over this much distance.
+    const GRADE_SMOOTHING = 0.4;
+
+    // How often the expensive lookups run, in seconds
+    const TEMP_PERIOD = 10;
+    const STATS_PERIOD = 10;
+    const WEATHER_PERIOD = 30;
 
     // Coggan zone edges as a fraction of FTP (Z2..Z7 lower bounds).
     const PWR_PCT = [0.55, 0.75, 0.90, 1.05, 1.20, 1.50];
