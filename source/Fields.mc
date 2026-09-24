@@ -678,11 +678,12 @@ module Fields {
         return kmh.format("%.0f");
     }
 
+    //! Always kilometres, one decimal, no unit. The header already says what the
+    //! tile is, and a fixed shape stops the number changing form mid-ride. Being
+    //! pure digits, it also qualifies for the large number fonts.
     function distance(meters as Numeric?) as String {
         if (meters == null) { return NO_DATA; }
-        var km = meters / 1000.0;
-        if (km < 100.0) { return km.format("%.1f") + "km"; }
-        return km.format("%.0f") + "km";
+        return (meters / 1000.0).format("%.1f");
     }
 
     function grade(v as Numeric?) as String {
