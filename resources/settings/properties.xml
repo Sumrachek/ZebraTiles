@@ -1,4 +1,6 @@
 <properties>
     <property id="ftp" type="number">200</property>
+    <property id="cadenceMin" type="number">85</property>
+    <property id="cadenceMax" type="number">95</property>
     <property id="layout" type="string"></property>
 </properties>

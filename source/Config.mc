@@ -62,6 +62,14 @@ module Config {
     const STATS_PERIOD = 10;
     const WEATHER_PERIOD = 30;
 
+    //! Cadence is the one scale here that is not monotonic: too low means
+    //! grinding, too high means spinning out, and the good place is in between.
+    //! So it gets a diverging palette - below the range, inside, above - rather
+    //! than the intensity ramp the power and heart rate zones use.
+    const CAD_COLORS = [0x3399FF, 0x55CC55, 0xFF9900];
+    const DEFAULT_CAD_MIN = 85;
+    const DEFAULT_CAD_MAX = 95;
+
     // Coggan zone edges as a fraction of FTP (Z2..Z7 lower bounds).
     const PWR_PCT = [0.55, 0.75, 0.90, 1.05, 1.20, 1.50];
 }

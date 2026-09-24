@@ -2,6 +2,9 @@
     <string id="AppName">ZebraTiles</string>
     <string id="SettingFtp">FTP, W</string>
     <string id="SettingFtpPrompt">Used for power zones. The Edge cannot share its own power zones with Connect IQ.</string>
+    <string id="SettingCadenceMin">Cadence target, low</string>
+    <string id="SettingCadenceMax">Cadence target, high</string>
+    <string id="SettingCadencePrompt">The cadence tile is green inside this range, blue below it and orange above.</string>
     <string id="SettingLayout">Layout</string>
     <string id="SettingLayoutPrompt">Rows separated by ";", fields by spaces. Wrap a row in "=" for the status strip. Empty = built-in layout.</string>
 </strings>

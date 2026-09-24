@@ -23,10 +23,11 @@ A few things worth knowing before you choose:
 - **A token that does not exist renders its own name with a `?`**, so a typo is visible on
   the screen rather than silently blank.
 - **Zone tinting applies to instantaneous fields only** — current and rolling power, heart
-  rate, the zone numbers and the percentages. Averages, maxima and lap figures stay on the
-  plain background, because a colour there would read as your present effort.
-- **Set your FTP** in the app settings. The Edge cannot share its power zones with Connect
-  IQ, so everything power-zone related is derived from that number.
+  rate, cadence, the zone numbers and the percentages. Averages, maxima and lap figures
+  stay on the plain background, because a colour there would read as your present effort.
+- **Fill in your FTP and your cadence range** in the app settings. The Edge cannot share
+  its power zones with Connect IQ, so every power zone is derived from your FTP; the
+  cadence colours come from the range.
 
 ---
 
@@ -78,6 +79,11 @@ Needs a power meter.
 | `MAX_CAD` | Highest cadence recorded this ride, rpm |
 | `LAP_CAD` | Average cadence for the current lap, rpm |
 | `LAST_LAP_CAD` | Average cadence for the previous lap, rpm |
+
+`CAD` is tinted against a target range you set in the app settings, 85 to 95 rpm by
+default: green inside the range, blue below it, orange above. Unlike power and heart rate
+these are not numbered zones, so the tile carries no `z` badge. Coasting reads as blue,
+since a cadence of zero really is below your range.
 
 ## Speed and distance
 

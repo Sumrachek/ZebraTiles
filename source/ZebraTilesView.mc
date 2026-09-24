@@ -127,7 +127,7 @@ class ZebraTilesView extends WatchUi.DataField {
 
         dc.setColor(Config.HEADER_BG, Config.HEADER_BG);
         dc.fillRectangle(x, y, w, headerH);
-        drawHeader(dc, Fields.labelFor(cell), zone, x, y, w, headerH);
+        drawHeader(dc, Fields.labelFor(cell), Zones.badgeFor(kind, zone), x, y, w, headerH);
 
         dc.setColor(fill, fill);
         dc.fillRectangle(x, y + headerH, w, valueH);
@@ -140,8 +140,7 @@ class ZebraTilesView extends WatchUi.DataField {
     }
 
     //! Label, and for zoned tiles the zone badge, centred together as one group.
-    hidden function drawHeader(dc as Dc, label as String, zone as Number?, x as Number, y as Number, w as Number, h as Number) as Void {
-        var badge = (zone != null) ? "z" + zone.format("%d") : null;
+    hidden function drawHeader(dc as Dc, label as String, badge as String?, x as Number, y as Number, w as Number, h as Number) as Void {
         var gap = (badge != null) ? Config.LABEL_GAP : 0;
         var avail = w - (2 * Config.PAD);
 

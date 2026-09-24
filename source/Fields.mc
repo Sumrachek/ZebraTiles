@@ -60,7 +60,8 @@ module Fields {
     enum {
         Z_NONE = 0,
         Z_HR,
-        Z_PWR
+        Z_PWR,
+        Z_CAD
     }
 
     const NO_DATA = "--";
@@ -300,6 +301,9 @@ module Fields {
             case F_PWR_PCT_FTP:
             case F_W_KG:
                 return Z_PWR;
+
+            case F_CAD:
+                return Z_CAD;
         }
         return Z_NONE;
     }
@@ -319,6 +323,8 @@ module Fields {
             case F_PWR_PCT_FTP:
             case F_W_KG:
                 return m.power;
+
+            case F_CAD:            return m.cadence;
 
             case F_PWR3S:          return m.rollingPower(3);
             case F_PWR5S:          return m.rollingPower(5);

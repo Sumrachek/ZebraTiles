@@ -93,7 +93,7 @@ source/
   ZebraTilesView.mc       all drawing: rows, tiles, headers, status strip, font fitting
   ZebraTilesApp.mc        app entry point, reloads settings on change
 resources/
-  settings/properties.xml default values for the `ftp` and `layout` properties
+  settings/properties.xml defaults for the `ftp`, cadence range and `layout` properties
   settings/settings.xml   how those properties appear in Garmin Connect Mobile
   strings/strings.xml     app name and setting labels
   drawables/              launcher icon
@@ -177,11 +177,19 @@ through `Weather`, `SensorHistory` or `System.Stats` therefore goes through a `h
 Palettes live in `Config.mc`: 5 heart-rate zones and 7 power zones, grey → blue → green →
 yellow → orange → red.
 
-Only instantaneous fields are tinted — current and rolling power, heart rate, the zone
-numbers, and the percentages (`% FTP`, `% MAX HR`, `% HRR`, `W/KG`), which are just the
-current value measured against a reference. Averages, maxima, lap and whole-ride figures
-render on the plain background, because a colour there reads as present effort and would
-be misleading.
+**Cadence is tinted too, but on a different kind of scale.** Power and heart rate are
+monotonic — more is harder — so an intensity ramp reads correctly. Cadence is not: low
+means grinding, high means spinning out, and the good place is in between. It therefore
+gets a diverging three-colour palette against a target range from the app settings
+(85–95 rpm by default): blue below, green inside, orange above. Those bands are not
+numbered zones, so those tiles carry no `z` badge. A coasting cadence of zero falls in the
+low band and is left to do so.
+
+Only instantaneous fields are tinted — current and rolling power, heart rate, cadence, the
+zone numbers, and the percentages (`% FTP`, `% MAX HR`, `% HRR`, `W/KG`), which are just
+the current value measured against a reference. Averages, maxima, lap and whole-ride
+figures render on the plain background, because a colour there reads as present effort and
+would be misleading.
 
 ---
 

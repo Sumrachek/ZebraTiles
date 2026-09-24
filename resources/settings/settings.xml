@@ -2,6 +2,12 @@
     <setting propertyKey="@Properties.ftp" title="@Strings.SettingFtp" prompt="@Strings.SettingFtpPrompt">
         <settingConfig type="numeric" min="50" max="600" />
     </setting>
+    <setting propertyKey="@Properties.cadenceMin" title="@Strings.SettingCadenceMin" prompt="@Strings.SettingCadencePrompt">
+        <settingConfig type="numeric" min="30" max="150" />
+    </setting>
+    <setting propertyKey="@Properties.cadenceMax" title="@Strings.SettingCadenceMax" prompt="@Strings.SettingCadencePrompt">
+        <settingConfig type="numeric" min="30" max="150" />
+    </setting>
     <setting propertyKey="@Properties.layout" title="@Strings.SettingLayout" prompt="@Strings.SettingLayoutPrompt">
         <settingConfig type="alphaNumeric" maxLength="160" />
     </setting>

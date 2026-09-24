@@ -12,6 +12,8 @@ module Zones {
     var mProfile as UserProfile.Profile? = null;
     var mProfileChecked as Boolean = false;
     var mFtp as Number = Config.DEFAULT_FTP;
+    var mCadMin as Number = Config.DEFAULT_CAD_MIN;
+    var mCadMax as Number = Config.DEFAULT_CAD_MAX;
 
     function reload() as Void {
         mHrZones = null;
@@ -30,6 +32,23 @@ module Zones {
         } else {
             mFtp = Config.DEFAULT_FTP;
         }
+
+        mCadMin = setting("cadenceMin", Config.DEFAULT_CAD_MIN);
+        mCadMax = setting("cadenceMax", Config.DEFAULT_CAD_MAX);
+        if (mCadMin >= mCadMax) {
+            mCadMin = Config.DEFAULT_CAD_MIN;
+            mCadMax = Config.DEFAULT_CAD_MAX;
+        }
+    }
+
+    function setting(key as String, fallback as Number) as Number {
+        var value = null;
+        try {
+            value = Application.Properties.getValue(key);
+        } catch (e) {
+            value = null;
+        }
+        return (value instanceof Lang.Number && value > 0) ? value : fallback;
     }
 
     //! 1-based zone number, or null when it cannot be told.
@@ -40,14 +59,39 @@ module Zones {
         if (kind == Fields.Z_HR) {
             return hrZone(value);
         }
+        if (kind == Fields.Z_CAD) {
+            return cadenceZone(value);
+        }
         return powerZone(value);
+    }
+
+    //! Three bands: below the target range, inside it, above it. A coasting
+    //! cadence of zero lands in the low band, which is the honest answer.
+    function cadenceZone(rpm as Numeric) as Number {
+        if (rpm < mCadMin) { return 1; }
+        if (rpm > mCadMax) { return 3; }
+        return 2;
+    }
+
+    //! The badge only means something where the zones are numbered. Cadence
+    //! bands are not zones, so those tiles carry the colour and no badge.
+    function badgeFor(kind as Number, zone as Number?) as String? {
+        if (zone == null || kind == Fields.Z_NONE || kind == Fields.Z_CAD) {
+            return null;
+        }
+        return "z" + zone.format("%d");
     }
 
     function colorFor(kind as Number, zone as Number?) as Number? {
         if (zone == null) {
             return null;
         }
-        var palette = (kind == Fields.Z_HR) ? Config.HR_COLORS : Config.PWR_COLORS;
+        var palette = Config.PWR_COLORS;
+        if (kind == Fields.Z_HR) {
+            palette = Config.HR_COLORS;
+        } else if (kind == Fields.Z_CAD) {
+            palette = Config.CAD_COLORS;
+        }
         var i = zone - 1;
         if (i < 0) { i = 0; }
         if (i >= palette.size()) { i = palette.size() - 1; }
