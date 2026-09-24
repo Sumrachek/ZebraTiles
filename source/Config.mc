@@ -35,11 +35,28 @@ module Config {
     //! families differ enough that one number will not do: DejaVu Fitness for the
     //! number fonts, Roboto Condensed for everything else.
     //!
-    //! Calibrated against device renders rather than taken from the typeface, so
-    //! these also absorb the half-pixel rounding of the band centres. Re-measure by
-    //! screenshotting the simulator and comparing glyph bounds to tile bounds.
-    const CAP_RATIO_NUMBER = 0.87;
-    const CAP_RATIO_TEXT = 0.69;
+    //! These are calibration constants, not typography. The ratio of glyph height
+    //! to ascent would be 39/43 and 15/17, but feeding those in still leaves the
+    //! text a pixel high: TEXT_JUSTIFY_VCENTER does not place the box exactly
+    //! where the reported metrics say it should. So the values below are solved
+    //! backwards from where the ink has to land, and they absorb that error along
+    //! with the half-pixel rounding of the band centres.
+    //!
+    //! Measured from a screenshot the Edge took of itself - Settings > System >
+    //! Display > Screen Capture, files land in Garmin/Screenshots. The device
+    //! draws without anti-aliasing, so glyph bounds come out exact. Never
+    //! calibrate against the simulator: it anti-aliases, which pads the measured
+    //! bounds and cost this project two wrong guesses.
+    //!
+    //! To redo it: screenshot, find each band, find the first and last row of ink
+    //! inside it, and solve for the ratio that centres that ink.
+    //!
+    //!   numbers  ascent 43, ink 39 tall in a 53 px band -> 7 px clear each side
+    //!   text     ascent 17, ink 15 tall in a 22 px band -> 3 above, 4 below,
+    //!            since 7 px of slack will not split evenly
+    const CAP_RATIO_NUMBER = 0.97;
+    const CAP_RATIO_TEXT = 0.88;
+
 
     // Geometry. STATUS_H and HEADER_H are both exactly LABEL_FONT's height.
     const STATUS_H = 22;

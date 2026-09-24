@@ -117,12 +117,14 @@ The interesting seams:
   visible glyphs: descender space below the baseline, and the gap from the cap line up to
   the ascent line. `FONT_NUMBER_HOT` reports a 56 px box, ascent 43 and descent 13, but
   draws digits only ~40 px tall — so box-centred digits sit about 4 px high in a tile.
-  `drawCentered` reconstructs where the glyph block really is and centres that. It needs
-  to know what fraction of the ascent the glyphs fill, and the device's two font families
-  differ enough to need separate numbers: `Config.CAP_RATIO_NUMBER` for the DejaVu Fitness
-  number fonts, `Config.CAP_RATIO_TEXT` for Roboto Condensed. Both were calibrated by
-  screenshotting the simulator and comparing glyph bounds against tile bounds — redo that
-  if the fonts or band heights change.
+  `drawCentered` reconstructs where the glyph block really is and centres that, scaling the
+  ascent by `Config.CAP_RATIO_NUMBER` or `Config.CAP_RATIO_TEXT` depending on the font
+  family. Those two constants are solved backwards from measurement, not taken from the
+  typeface — `VCENTER` does not place the box exactly where the reported metrics say, so
+  the pure ratio is about a pixel out. **Calibrate them from a screenshot the Edge takes of
+  itself** (Settings > System > Display > Screen Capture): the device renders without
+  anti-aliasing, so glyph bounds are exact. The simulator anti-aliases and will send you
+  wrong.
 - Geometry is computed from `dc.getWidth()/getHeight()` on every draw, so the field
   degrades sensibly if it is placed in a half-screen slot instead of a full page.
 
