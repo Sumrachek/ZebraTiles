@@ -89,6 +89,7 @@ source/
   Fields.mc               token registry: code, header label, value formatting, zone kind
   Metrics.mc              per-second data collection and derived values
   Lap.mc                  per-lap accumulators, current and previous lap
+  TemperatureService.mc   background service reading the thermometer, and its two constants
   Zones.mc                zone lookup and zone -> colour mapping
   ZebraTilesView.mc       all drawing: rows, tiles, headers, status strip, font fitting
   ZebraTilesApp.mc        app entry point, reloads settings on change
@@ -154,10 +155,25 @@ reconstructed in `Metrics`:
 - **NP, IF, TSS, kJ** — normalized power is the fourth-power mean of the 30 s rolling
   average. The running total is scaled down by 100 W so it stays inside a Float; IF and
   TSS follow from it and the FTP setting.
-- **Temperature** — data fields are **not permitted to call `Sensor.getInfo()`**; doing so
-  crashes the field with *"Symbol 'getInfo' not available to 'Data Field'"*. The device
-  thermometer is read through `SensorHistory` instead, once every 10 seconds.
+- **Temperature** — the Edge's own thermometer is out of reach from the field itself.
+  `Sensor.getInfo()` is documented to crash when called from a data field, `Activity.Info`
+  carries no temperature, and `SensorHistory.getTemperatureHistory()` lists only watches
+  among its supported devices. The reading is therefore taken by a **background service**
+  (`TemperatureService`), which runs in a context where the `Sensor` call is allowed, and
+  left in `Storage` for the field to pick up. Temporal events fire at most every five
+  minutes, so the value is that stale — fine for ambient air, and the first reading only
+  appears once the first event has fired.
 - **Battery and weather** — polled on their own timers rather than at 1 Hz.
+
+### Background code must be annotated
+
+Only code marked `(:background)` is compiled into the background image, and everything it
+references must be marked too — the image has its own memory budget, 32 KB here against
+the field's 128 KB. That is why `TemperatureService.mc` carries its own little
+`Temperature` module of constants instead of reaching into `Config`: `Config` cannot be
+marked, because it references `Graphics`, which background processes do not have. The
+compiler warns about every unmarked symbol a background path touches; those warnings are
+not noise, they are crashes waiting for the service to run.
 
 ### Optional API members need `has`
 

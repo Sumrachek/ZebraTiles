@@ -179,6 +179,10 @@ Needs a phone connected; the figures are whatever was last downloaded.
 | `DEW_POINT` | Dew point, °C |
 | `UV_INDEX` | UV index |
 
+`TEMP_C` is read by a background service, because a data field cannot reach the
+thermometer directly. Connect IQ will not run those more often than every five minutes, so
+the value lags, and it stays blank until the first one has fired after the field starts.
+
 `DEW_POINT` always shows `--` on the Edge 530: the value is part of the Connect IQ
 weather API but this device does not supply it.
 
@@ -186,7 +190,7 @@ weather API but this device does not supply it.
 
 | Token | Shows |
 |---|---|
-| `TEMP_C` | Temperature from the Edge's own thermometer, °C |
+| `TEMP_C` | Temperature from the Edge's own thermometer, °C — refreshed every 5 minutes |
 | `PRESSURE` | Barometric pressure where you are, hPa |
 | `SEA_PRESSURE` | Pressure corrected to sea level, hPa |
 | `BATTERY` | Battery charge, % |

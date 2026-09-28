@@ -98,7 +98,7 @@ module Config {
     const GRADE_SMOOTHING = 0.4;
 
     // How often the expensive lookups run, in seconds
-    const TEMP_PERIOD = 10;
+    const TEMP_PERIOD = 10;       //!< How often the field re-reads the stored temperature.
     const STATS_PERIOD = 10;
     const WEATHER_PERIOD = 30;
 

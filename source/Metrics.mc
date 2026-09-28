@@ -1,8 +1,8 @@
 import Toybox.Activity;
 import Toybox.Lang;
 import Toybox.Math;
+import Toybox.Application;
 import Toybox.System;
-using Toybox.SensorHistory;
 using Toybox.Weather;
 
 //! Everything the tiles can show, refreshed once per second by compute().
@@ -317,8 +317,8 @@ class Metrics {
         mRefDistance = dist;
     }
 
-    //! Data fields may not touch Sensor.getInfo(), so the device thermometer is
-    //! read through its history instead - once every few seconds, which is plenty.
+    //! The reading is taken by a background service and left in Storage; see
+    //! TemperatureService for why it cannot be read here directly.
     hidden function updateTemperature() as Void {
         if (mTempTick > 0) {
             mTempTick--;
@@ -326,19 +326,14 @@ class Metrics {
         }
         mTempTick = Config.TEMP_PERIOD;
 
-        if (!(Toybox has :SensorHistory) || !(SensorHistory has :getTemperatureHistory)) {
-            return;
+        var stored = null;
+        try {
+            stored = Application.Storage.getValue(Temperature.KEY);
+        } catch (e) {
+            stored = null;
         }
-        var history = SensorHistory.getTemperatureHistory({
-            :period => 1,
-            :order => SensorHistory.ORDER_NEWEST_FIRST
-        });
-        if (history == null) {
-            return;
-        }
-        var sample = history.next();
-        if (sample != null && sample.data != null) {
-            temperature = sample.data;
+        if (stored instanceof Lang.Number || stored instanceof Lang.Float || stored instanceof Lang.Double) {
+            temperature = stored;
         }
     }
 
