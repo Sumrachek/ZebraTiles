@@ -50,6 +50,7 @@ SAMPLES = {
     "OFF_COURSE": "12", "BEARING": "142°", "HEADING": "138°",
     "TRACK": "140°", "BEARING_START": "318°",
     "GEAR_FRONT": "2", "GEAR_REAR": "7", "GEARS": "50/17", "GEAR_RATIO": "2.94",
+    "GEAR_MAP": "52-15",
     "WEATHER_TEMP": "16°C", "FEELS_LIKE": "14°C", "WIND_SPD": "12",
     "WIND_DIR": "290°", "WIND_REL": "HEAD", "HUMIDITY": "62%",
     "PRECIP_CHANCE": "10%", "DEW_POINT": "--", "UV_INDEX": "3",

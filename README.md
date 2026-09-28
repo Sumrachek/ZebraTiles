@@ -81,7 +81,7 @@ Two ways, and the second wins when it is non-empty:
 build.sh                  compile; also the shared path resolution run.sh sources
 run.sh                    compile, then load into the simulator
 developer_key             signs the .prg; local only, never registered with Garmin
-manifest.xml              app id, target device, permissions (UserProfile, SensorHistory)
+manifest.xml              app id, target device, permissions (UserProfile, Sensor, Background)
 monkey.jungle             build config
 source/
   Config.mc               default layout, colours, zone palettes, geometry constants
@@ -142,6 +142,23 @@ The interesting seams:
 - Geometry is computed from `dc.getWidth()/getHeight()` on every draw, so the field
   degrades sensibly if it is placed in a half-screen slot instead of a full page.
 
+### Fields that draw themselves
+
+`Fields.isGraphic()` marks a token whose tile is painted rather than filled with a value.
+`GEAR_MAP` is the one so far: `drawTile` gives it the whole tile — no header, no zone fill,
+just the row rule — and hands over to `drawGearMap`. Two things about that drawing are
+worth knowing before changing it. A drivetrain broadcasts only the engaged sprocket's tooth
+count and the number of positions, never the whole cassette, so the ramp is evenly stepped
+and not true to any real cassette — and that tooth count is an optional field, which many
+groupsets send as zero, leaving the rear half of the gear unreadable. Both are cured by
+listing the drivetrain in `Config.CASSETTE_TEETH` and `CHAINRING_TEETH`: the teeth then come
+from there when the air does not carry them, the bar heights follow the real spread, and the
+list length sets how many bars are drawn. And Garmin documents the derailleur index only as "1 to
+max", never saying which end holds the small sprocket, so the drawing fixes the shape —
+chainrings large to small, sprockets small to large — and
+`Config.FRONT_INDEX_1_IS_SMALLEST` / `REAR_INDEX_1_IS_SMALLEST` decide where an index lands
+on it. Flip them if the highlight moves the wrong way on the first shift.
+
 ### Adding a field
 
 1. Add a constant to the `enum` in `Fields.mc`.
@@ -187,6 +204,24 @@ the field's 128 KB. That is why `TemperatureService.mc` carries its own little
 marked, because it references `Graphics`, which background processes do not have. The
 compiler warns about every unmarked symbol a background path touches; those warnings are
 not noise, they are crashes waiting for the service to run.
+
+### The draw stack is shallower than it looks
+
+`GEAR_MAP` crashed the field on the device with a `Stack Overflow Error` the moment a
+groupset connected — and only then, because the arrowhead over the engaged bar is the one
+piece of drawing that runs when a gear is engaged. The chain had reached
+`onUpdate → drawTileRow → drawTile → drawGraphicTile → drawGearMap → bar → marker → fillRectangle`,
+and the virtual machine could not push the last frame. The error names the innermost draw
+call, which makes it look like a broken API rather than a depth problem.
+
+The fix was to flatten: the graphic tile is painted straight from `drawTile`, and a bar
+draws its own marker. Keep drawing paths shallow, and be suspicious of a "failed invoking"
+error against a call that plainly works elsewhere.
+
+`Dc.fillPolygon` is a separate trap found along the way. It is documented since API 1.0.0
+and appears in the Edge 530's own API listing, yet invoking it throws — confirmed with a
+hard-coded triangle, where the stack put the fault inside the API call. The arrowhead is
+built from rows of `fillRectangle` instead.
 
 ### Optional API members need `has`
 

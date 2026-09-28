@@ -155,6 +155,17 @@ class ZebraTilesView extends WatchUi.DataField {
     }
 
     hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number) as Void {
+        if (Fields.isGraphic(cell.code)) {
+            dc.setColor(Config.VALUE_BG, Config.VALUE_BG);
+            dc.fillRectangle(x, y, w, h);
+            if (!headerIsPainted() && y > 0) {
+                dc.setColor(Config.HEADER_RULE, Config.HEADER_RULE);
+                dc.fillRectangle(x, y, w, 1);
+            }
+            drawGearMap(dc, x, y, w, h);
+            return;
+        }
+
         var headerH = (h < 56) ? h / 3 : Config.HEADER_H;
         var valueH = h - headerH;
 
@@ -201,6 +212,171 @@ class ZebraTilesView extends WatchUi.DataField {
     //! 0xFF000000 spelling, since Monkey C colours carry no alpha channel.
     hidden function headerIsPainted() as Boolean {
         return mHeaderBg >= 0 && mHeaderBg <= 0xFFFFFF;
+    }
+
+
+    //! Chainrings on the left, sprockets on the right, both as a ramp of bars with
+    //! the engaged one picked out, and the ratio written across the top.
+    //!
+    //! The ramps are schematic: the drivetrain broadcasts the engaged sprocket's
+    //! teeth and the number of positions, never the size of every sprocket, so the
+    //! steps are even. Chainrings descend to the right and sprockets climb, both
+    //! fixed whichever way the indices happen to run, so the shape of the picture
+    //! never changes and only the highlight moves.
+    hidden function drawGearMap(dc as Dc, x as Number, y as Number, w as Number, h as Number) as Void {
+        var m = mMetrics;
+        var ringTeeth = Config.CHAINRING_TEETH;
+        var cogTeeth = Config.CASSETTE_TEETH;
+        var rings = (ringTeeth.size() > 0)
+            ? ringTeeth.size() : count(m.frontMax, Config.CHAINRINGS_FALLBACK, 1, 3);
+        var cogs = (cogTeeth.size() > 0)
+            ? cogTeeth.size() : count(m.rearMax, Config.SPROCKETS_FALLBACK, 5, 14);
+
+        var pad = Config.PAD;
+        var innerW = w - (2 * pad);
+        var innerH = h - (2 * pad);
+        if (innerW < 20 || innerH < 12) {
+            return;
+        }
+
+        var split = innerW * 0.05;
+        var slot = (innerW - split) / (rings + cogs);
+        var barW = (slot * 0.66).toNumber();
+        if (barW < 2) { barW = 2; }
+        var floorY = y + h - pad;
+
+        var front = seat(m.frontGear, rings, Config.FRONT_INDEX_1_IS_SMALLEST);
+        var rear = seat(m.rearGear, cogs, Config.REAR_INDEX_1_IS_SMALLEST);
+
+        // Chainrings run large to small, left to right - the mirror of the cassette
+        // beside them, which is how a drivetrain looks from the side. `front` is
+        // still counted from the small end, so the draw position is mirrored too.
+        for (var i = 0; i < rings; i++) {
+            var step = profile(ringTeeth, rings - 1 - i, rings);
+            var tall = innerH * (Config.GEAR_RING_MIN
+                + ((Config.GEAR_RING_MAX - Config.GEAR_RING_MIN) * step));
+            drawBar(dc, (x + pad + (slot * i)).toNumber(), floorY, barW, tall.toNumber(),
+                (rings - 1 - i) == front, y + pad);
+        }
+        // Sprockets: a long ramp, small cog to large, deliberately kept low so the
+        // gear has room to be read above it.
+        var spread = Config.GEAR_COG_MAX - Config.GEAR_COG_MIN;
+        for (var j = 0; j < cogs; j++) {
+            var high = innerH * (Config.GEAR_COG_MIN + (spread * profile(cogTeeth, j, cogs)));
+            var left = x + pad + split + (slot * (rings + j));
+            drawBar(dc, left.toNumber(), floorY, barW, high.toNumber(), j == rear, y + pad);
+        }
+
+        // The gear is read against the cassette, left aligned and reaching from the
+        // top of the tile down to halfway up the tallest sprocket. It overlaps the
+        // shallow end of the ramp, which is empty, and the depth buys a font size.
+        var text = gearText(m, ringTeeth, cogTeeth, front, rear);
+        var cassetteLeft = x + pad + split + (slot * rings);
+        var cassetteW = slot * cogs;
+        var textH = (innerH * (1.0 - (Config.GEAR_COG_MAX / 2.0))
+            * Config.GEAR_TEXT_SCALE).toNumber();
+        var font = pickFont(dc, text, cassetteW.toNumber(), textH);
+        dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
+        drawCentered(dc, cassetteLeft.toNumber(), y + pad + (textH / 2),
+            font, text, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    //! Where a bar sits between the shortest and the tallest, 0.0 to 1.0. With a
+    //! tooth list that is the real spread of the cassette; without one it falls
+    //! back to an even staircase.
+    hidden function profile(teeth as Array<Number>, at as Number, total as Number) as Float {
+        if (total < 2) {
+            return 1.0;
+        }
+        if (teeth.size() == total) {
+            var low = teeth[0];
+            var high = teeth[total - 1];
+            if (high > low) {
+                return (teeth[at] - low) * 1.0 / (high - low);
+            }
+        }
+        return 1.0 * at / (total - 1);
+    }
+
+    //! The engaged gear as teeth. Prefers what the drivetrain broadcasts, and
+    //! falls back to the configured list - which is the only way to get the rear
+    //! number on a groupset that broadcasts zero for it.
+    hidden function gearText(m as Metrics, ringTeeth as Array<Number>, cogTeeth as Array<Number>,
+                             front as Number, rear as Number) as String {
+        var f = teethAt(m.frontTeeth, ringTeeth, front);
+        var r = teethAt(m.rearTeeth, cogTeeth, rear);
+        if (f == null && r == null) {
+            return Fields.NO_DATA;
+        }
+        // Only the known halves are joined. Padding a missing one out to "--"
+        // reads as "52---", which looks like a fault rather than a missing value.
+        if (f == null) {
+            return r.format("%d");
+        }
+        if (r == null) {
+            return f.format("%d");
+        }
+        return f.format("%d") + "-" + r.format("%d");
+    }
+
+    //! Zero means "not broadcast" here, not a real sprocket.
+    hidden function teethAt(broadcast as Number?, teeth as Array<Number>, at as Number) as Number? {
+        if (broadcast != null && broadcast > 0) {
+            return broadcast;
+        }
+        if (at >= 0 && at < teeth.size()) {
+            return teeth[at];
+        }
+        return null;
+    }
+
+    //! One bar, plus the arrowhead over it when it is the engaged one.
+    //!
+    //! The marker is drawn here rather than in a function of its own, and the
+    //! whole tile is painted from drawTile rather than through a wrapper, because
+    //! this is the deepest call chain in the field and it ran out of stack: the
+    //! Edge reported a Stack Overflow Error against the innermost draw call, and
+    //! only once a gear was engaged, since that is the only time the marker runs.
+    //!
+    //! The arrowhead is rows rather than Dc.fillPolygon, which is documented since
+    //! API 1.0.0 and listed in the device's own API, yet throws when invoked here.
+    hidden function drawBar(dc as Dc, left as Number, floorY as Number, width as Number, height as Number, on as Boolean, ceiling as Number) as Void {
+        var color = on ? Config.GEAR_HILITE : Config.GEAR_BAR;
+        dc.setColor(color, color);
+        var top = floorY - height;
+        dc.fillRectangle(left, top, width, height);
+        if (!on) {
+            return;
+        }
+
+        var point = (width < 3) ? 3 : width;
+        var tipY = top - Config.GEAR_MARK_GAP;
+        var baseY = tipY - point;
+        if (baseY < ceiling) {
+            return;
+        }
+        var cx = left + (width / 2);
+        for (var row = 0; row < point; row++) {
+            var half = width - ((width * row) / point);
+            if (half < 1) { half = 1; }
+            dc.fillRectangle(cx - half, baseY + row, half * 2, 1);
+        }
+    }
+
+    //! Where a 1-based index sits when the positions are counted from the smallest
+    //! upwards. Returns -1 when nothing is engaged, so no bar is highlighted.
+    hidden function seat(index as Number?, total as Number, oneIsSmallest as Boolean) as Number {
+        if (index == null || index < 1 || index > total) {
+            return -1;
+        }
+        return oneIsSmallest ? index - 1 : total - index;
+    }
+
+    hidden function count(reported as Number?, fallback as Number, low as Number, high as Number) as Number {
+        var n = (reported != null) ? reported : fallback;
+        if (n < low) { n = low; }
+        if (n > high) { n = high; }
+        return n;
     }
 
     //! Stripes of the neighbouring zones' colours, creeping in from whichever side

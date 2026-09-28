@@ -10,8 +10,8 @@ module Config {
     const DEFAULT_LAYOUT =
         "3s_PWR\n" +
         "SPD HR\n" +
-        "CAD ALT\n" +
-        "LAP_SPD LAP_DIST\n" +
+        "CAD GRD\n" +
+        "LAP_SPD GEAR_MAP\n" +
         "LAP_PWR LAP_TIME\n" +
         "= day_time_24 dist temp_c =";
 
@@ -34,6 +34,50 @@ module Config {
     //! Lifting by 4 evens that out. Raise it further to make the value read as
     //! attached to its label rather than floating between the two edges.
     const HEADERLESS_VALUE_LIFT = 4;
+
+    //! GEAR_MAP: the drivetrain drawn as bars - chainrings on the left, sprockets
+    //! on the right, the engaged one picked out.
+    //!
+    //! Only the engaged sprocket's tooth count is broadcast, never the whole
+    //! cassette, so the steps are an even ramp rather than real ratios. And
+    //! Garmin documents the index as "1 to max" without saying which end is the
+    //! small sprocket, so the ramp always climbs to the right and these flags
+    //! decide where an index lands on it. If the highlight moves the wrong way on
+    //! the first shift, flip them.
+    const GEAR_BAR = 0x000000;
+    const GEAR_HILITE = 0x1A6BFF;
+    const FRONT_INDEX_1_IS_SMALLEST = true;
+    const REAR_INDEX_1_IS_SMALLEST = false;
+    //! Your actual drivetrain, smallest first. Optional, and empty by default.
+    //!
+    //! Worth filling in for two reasons. Many groupsets leave the sprocket's tooth
+    //! count out of the ANT+ shifting message - it is an optional field - and
+    //! broadcast zero for it, so the rear half of the gear cannot be read off the
+    //! air. And knowing every sprocket turns the bar ramp from an even staircase
+    //! into the real profile of your cassette.
+    //!
+    //! When a list is given it also sets how many bars are drawn, in place of the
+    //! count the derailleur reports.
+    const CHAINRING_TEETH = [34, 52];   //!< e.g. [36, 52]
+    const CASSETTE_TEETH = [11, 12, 13, 14, 15, 17, 19, 21, 24, 27, 30, 34];    //!< e.g. [11, 12, 13, 14, 15, 17, 19, 21, 24, 28]
+
+    const CHAINRINGS_FALLBACK = 2;   //!< Drawn when the drivetrain has not said yet.
+    const SPROCKETS_FALLBACK = 11;
+
+    //! Bar heights as a fraction of the tile. The sprocket ramp is kept low on
+    //! purpose: what it does not use is exactly the band the gear reads in, so
+    //! raising GEAR_COG_MAX shrinks the text and lowering it enlarges the text.
+    const GEAR_RING_MIN = 0.66;
+    const GEAR_RING_MAX = 0.90;
+    const GEAR_MARK_GAP = 2;   //!< Clearance between the arrowhead's tip and the bar.
+    const GEAR_COG_MIN = 0.07;
+    const GEAR_COG_MAX = 0.70;
+
+    //! The gear text gets the band the sprocket ramp leaves clear, scaled by this.
+    //! The full band turned out to be more than the digits could take without
+    //! spilling past the tile - the number fonts are allowed a little overflow
+    //! when they are picked, and at that size a little is several pixels.
+    const GEAR_TEXT_SCALE = 0.85;
 
     const ZONE_FG = 0xFFFFFF;
     const VALUE_BG = 0xFFFFFF;

@@ -162,6 +162,16 @@ Needs electronic shifting that broadcasts over ANT.
 | `GEAR_REAR` | Rear sprocket position |
 | `GEARS` | Both at once, as teeth if the groupset reports them, otherwise positions |
 | `GEAR_RATIO` | Front teeth divided by rear teeth |
+| `GEAR_MAP` | The drivetrain drawn out: chainrings, sprockets, the engaged one picked out |
+
+`GEAR_MAP` draws its own tile rather than showing a number, so it has no header and no zone
+tint, and it takes the full height of its row.
+
+The sprocket's tooth count is an optional field in the ANT+ shifting message and plenty of
+groupsets broadcast zero for it, in which case the rear half of the gear cannot be read off
+the air at all. Listing your cassette in `Config.CASSETTE_TEETH` fixes that, and turns the
+bar ramp from an even staircase into the real profile of your cassette. `CHAINRING_TEETH`
+does the same for the front, which most groupsets do report correctly.
 
 ## Weather
 

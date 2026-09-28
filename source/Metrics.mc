@@ -53,6 +53,8 @@ class Metrics {
     public var rearGear as Number? = null;
     public var frontTeeth as Number? = null;
     public var rearTeeth as Number? = null;
+    public var frontMax as Number? = null;
+    public var rearMax as Number? = null;
 
     // Derived
     public var grade as Numeric? = 0.0;
@@ -143,6 +145,8 @@ class Metrics {
         rearGear = info.rearDerailleurIndex;
         frontTeeth = info.frontDerailleurSize;
         rearTeeth = info.rearDerailleurSize;
+        frontMax = info.frontDerailleurMax;
+        rearMax = info.rearDerailleurMax;
 
         timerMs = (info.timerTime != null) ? info.timerTime as Number : 0;
         elapsedMs = (info.elapsedTime != null) ? info.elapsedTime as Number : 0;

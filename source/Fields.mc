@@ -45,7 +45,7 @@ module Fields {
         F_OFF_COURSE, F_BEARING, F_HEADING, F_TRACK, F_BEARING_START,
 
         // Drivetrain
-        F_GEAR_FRONT, F_GEAR_REAR, F_GEARS, F_GEAR_RATIO,
+        F_GEAR_FRONT, F_GEAR_REAR, F_GEARS, F_GEAR_RATIO, F_GEAR_MAP,
 
         // Weather
         F_WEATHER_TEMP, F_FEELS_LIKE, F_WIND_SPD, F_WIND_DIR, F_WIND_REL,
@@ -152,6 +152,7 @@ module Fields {
         if (token.equals("GEAR_REAR")) { return F_GEAR_REAR; }
         if (token.equals("GEARS")) { return F_GEARS; }
         if (token.equals("GEAR_RATIO")) { return F_GEAR_RATIO; }
+        if (token.equals("GEAR_MAP")) { return F_GEAR_MAP; }
 
         // Weather
         if (token.equals("WEATHER_TEMP")) { return F_WEATHER_TEMP; }
@@ -256,6 +257,7 @@ module Fields {
             case F_GEAR_REAR:      return "REAR";
             case F_GEARS:          return "GEARS";
             case F_GEAR_RATIO:     return "RATIO";
+            case F_GEAR_MAP:       return "";
 
             case F_WEATHER_TEMP:   return "AIR TEMP";
             case F_FEELS_LIKE:     return "FEELS";
@@ -283,6 +285,11 @@ module Fields {
     //! percentages, which are just the current value against a reference.
     //! Averages, maxima and whole-ride totals stay on the plain background: a
     //! colour there would read as the current effort and be wrong.
+    //! A field that paints its own tile: no header, no zone fill, full height.
+    function isGraphic(code as Number) as Boolean {
+        return code == F_GEAR_MAP;
+    }
+
     function zoneKind(code as Number) as Number {
         switch (code) {
             case F_HR:
@@ -421,6 +428,7 @@ module Fields {
             case F_GEAR_REAR:      return whole(m.rearGear);
             case F_GEARS:          return gears(m);
             case F_GEAR_RATIO:     return gearRatio(m);
+            case F_GEAR_MAP:       return gears(m);
 
             // Weather
             case F_WEATHER_TEMP:   return celsius(weatherTemp(m));
