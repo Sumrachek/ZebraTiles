@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZebraTiles Layout Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#eef0f2; --panel:#fff; --sunk:#e4e7ea; --ink:#15181c; --muted:#5d6874;
+    --hair:#d3d8dd; --accent:#2f6f8f; --warn:#b4472b; --ok:#2f7d4f;
+    --u:1px;                        /* one device pixel */
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme=light]){
+    --ground:#131619; --panel:#1c2024; --sunk:#141719; --ink:#e7eaed; --muted:#949ea9;
+    --hair:#2c3238; --accent:#6fb3d2; --warn:#e08a6f; --ok:#6fc08f; color-scheme:dark; } }
+  :root[data-theme=dark]{
+    --ground:#131619; --panel:#1c2024; --sunk:#141719; --ink:#e7eaed; --muted:#949ea9;
+    --hair:#2c3238; --accent:#6fb3d2; --warn:#e08a6f; --ok:#6fc08f; color-scheme:dark; }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+       font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.45}
+  .page{max-width:1400px;margin:0 auto;padding-inline:16px;padding-block:24px 56px;
+        display:flex;flex-direction:column;gap:20px}
+  h1{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em}
+  .sub{margin:4px 0 0;color:var(--muted);max-width:70ch}
+  .cols{display:grid;grid-template-columns:minmax(230px,1fr) minmax(300px,1.3fr) auto;gap:18px;align-items:start}
+  @media (max-width:1040px){ .cols{grid-template-columns:1fr} }
+
+  .card{background:var(--panel);border:1px solid var(--hair);border-radius:8px;overflow:hidden}
+  .card > h2{margin:0;padding:10px 12px;font-family:"IBM Plex Mono",monospace;font-size:11px;
+             font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+             border-bottom:1px solid var(--hair)}
+  .body{padding:12px}
+
+  /* palette */
+  .grp{border-bottom:1px solid var(--hair)}
+  .grp:last-child{border-bottom:0}
+  .grp > button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;
+    background:none;border:0;color:var(--ink);font:inherit;font-weight:500;padding:9px 12px;cursor:pointer;text-align:left}
+  .grp > button:hover{background:var(--sunk)}
+  .grp .count{color:var(--muted);font-family:"IBM Plex Mono",monospace;font-size:11px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;padding:0 12px 12px}
+  .chip{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--hair);
+    border-radius:999px;background:var(--panel);cursor:grab;font-size:12px;white-space:nowrap}
+  .chip:hover{border-color:var(--accent)}
+  .chip:active{cursor:grabbing}
+  .chip .dot{width:8px;height:8px;border-radius:50%;flex:none;
+    background:linear-gradient(90deg,var(--z1) 50%,var(--z2) 50%)}
+  .chip code{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted)}
+
+  /* stack */
+  .stack{display:flex;flex-direction:column;gap:0;padding:12px}
+  .gap{height:10px;border-radius:4px;transition:background .12s}
+  .gap.on{background:var(--accent);height:14px}
+  .row{display:flex;align-items:stretch;gap:8px;border:1px solid var(--hair);border-radius:6px;
+       padding:8px;background:var(--sunk)}
+  .row.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .row .tiles{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-height:32px;align-content:flex-start}
+  .tile-chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--hair);
+    border-radius:5px;padding:4px 6px 4px 8px;font-size:12px;cursor:grab}
+  .tile-chip code{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted)}
+  .tile-chip button, .row .ctl{background:none;border:0;color:var(--muted);cursor:pointer;
+    font:inherit;padding:2px 5px;border-radius:4px;line-height:1}
+  .tile-chip button:hover,.row .ctl:hover{background:var(--hair);color:var(--ink)}
+  .row .side{display:flex;flex-direction:column;gap:2px;justify-content:flex-start}
+  .row .ctl.act{color:var(--accent);font-weight:600}
+  .row .grip{cursor:grab;user-select:none;text-align:center}
+  .row .grip:active{cursor:grabbing}
+  .row.moving{opacity:.45}
+  .empty{color:var(--muted);font-size:12px;padding:6px 2px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 12px}
+  button.btn{font:inherit;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--hair);
+    background:var(--panel);color:var(--ink);cursor:pointer}
+  button.btn:hover{border-color:var(--accent)}
+
+  /* device */
+  .device{display:flex;flex-direction:column;gap:12px;align-items:center;padding:14px}
+  .screen{width:calc(246*var(--u));height:calc(322*var(--u));background:#000;flex:none;
+          display:flex;flex-direction:column;font-family:"Roboto Condensed",sans-serif;
+          border:calc(2*var(--u)) solid #222;border-radius:calc(4*var(--u))}
+  .srow{display:flex;position:relative}
+  .stile{flex:1;position:relative;overflow:hidden}
+  .stile .rule{position:absolute;top:0;left:0;right:0;height:var(--u);background:#aaa}
+  .stile .lb{position:absolute;left:0;right:0;top:0;height:calc(22*var(--u));
+    display:flex;align-items:center;justify-content:center;gap:calc(7*var(--u));color:#444;line-height:1}
+  .stile .lb b{color:#000;font-weight:700}
+  .stile .vl{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;
+    color:#000;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .sstatus{display:flex;align-items:center;justify-content:space-between;color:#fff;
+    padding-inline:calc(3*var(--u));font-family:"Roboto Condensed",sans-serif}
+  .zonebar{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap;justify-content:center}
+  .zonebar button{width:26px;height:24px;border-radius:5px;border:1px solid var(--hair);cursor:pointer;
+    font:inherit;font-size:11px;background:var(--panel);color:var(--ink)}
+  .zonebar button.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:600}
+
+  /* output */
+  .out{display:flex;flex-direction:column;gap:6px;padding:12px}
+  .out label{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;
+             text-transform:uppercase;color:var(--muted)}
+  .out textarea{width:100%;font-family:"IBM Plex Mono",monospace;font-size:12px;line-height:1.5;
+    background:var(--sunk);color:var(--ink);border:1px solid var(--hair);border-radius:6px;
+    padding:8px;resize:vertical}
+  .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+  .meta .warn{color:var(--warn);font-weight:600}
+  .meta .ok{color:var(--ok)}
+  .notes{padding:0 12px 12px;color:var(--muted);font-size:12px;display:flex;flex-direction:column;gap:6px}
+  .notes code{font-family:"IBM Plex Mono",monospace;font-size:11px}
+
+  /* Placed last on purpose. An earlier attempt put these above .card, which
+     declares overflow:hidden at the same specificity and simply won the cascade,
+     so the column never scrolled in any browser.
+
+     The palette is long, so rather than hand each column its own scroller - which
+     needs a definite height all the way up the tree - the page scrolls as one and
+     the two columns you drop into stick to the top, keeping a drop target on
+     screen. Below the breakpoint everything returns to normal flow: dragging does
+     not work on a touch screen anyway, and adding by click takes over. */
+  @media (min-width:1041px){
+    .cols{align-items:start}
+    .stackcol,.rightcol{position:sticky;top:16px;
+      max-height:calc(100vh - 32px);overflow-x:hidden;overflow-y:auto;
+      overscroll-behavior:contain}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>ZebraTiles Layout Builder</h1>
+    <p class="sub">Drag fields from the palette into rows. The screen on the right is drawn at the
+      Edge 530's real geometry &mdash; 246&times;322, 22&nbsp;px label band, the same font ladder the
+      field picks from &mdash; and the config below it is what you paste into the Layout setting.</p>
+  </header>
+
+  <div class="cols">
+    <div class="card">
+      <h2>Fields</h2>
+      <div id="palette"></div>
+    </div>
+
+    <div class="card stackcol">
+      <h2>Rows</h2>
+      <div class="stack" id="stack"></div>
+      <div class="toolbar">
+        <button class="btn" id="addRow">Add row</button>
+        <button class="btn" id="addStatus">Add status strip</button>
+        <button class="btn" id="loadDefault">Load built-in layout</button>
+        <button class="btn" id="clear">Clear</button>
+      </div>
+      <div class="notes">
+        <p>Click a field to append it to the highlighted row, or drag it anywhere. Drop into the
+          gap between rows to make a new one, and drag a row by its <b>&#8801;</b> handle into a
+          gap to move it.</p>
+      </div>
+    </div>
+
+    <div class="rightcol">
+      <div class="card">
+        <h2>Screen</h2>
+        <div class="device">
+          <div class="screen" id="screen"></div>
+          <div class="zonebar">
+            <span>Zone</span>
+            <span id="zoneBtns"></span>
+            <span>&middot; scale</span>
+            <span id="scaleBtns"></span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <h2>Config</h2>
+        <div class="out">
+          <label for="oneline">Layout setting &mdash; rows separated by <code>;</code></label>
+          <textarea id="oneline" rows="4" readonly></textarea>
+          <div class="meta">
+            <span id="len"></span>
+            <button class="btn" data-copy="oneline">Copy</button>
+          </div>
+          <div class="meta"><span id="rowinfo"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"groups": [{"name": "Power", "items": [{"t": "PWR", "h": "PWR", "d": "Current power, W", "z": "pwr", "v": "212"}, {"t": "3S_PWR", "h": "3s PWR", "d": "Power averaged over the last 3 seconds, W", "z": "pwr", "v": "204"}, {"t": "5S_PWR", "h": "5s PWR", "d": "Power averaged over the last 5 seconds, W", "z": "pwr", "v": "201"}, {"t": "10S_PWR", "h": "10s PWR", "d": "Power averaged over the last 10 seconds, W", "z": "pwr", "v": "197"}, {"t": "30S_PWR", "h": "30s PWR", "d": "Power averaged over the last 30 seconds, W", "z": "pwr", "v": "193"}, {"t": "AVG_PWR", "h": "AVG PWR", "d": "Average power for the whole ride, W", "z": "", "v": "186"}, {"t": "MAX_PWR", "h": "MAX PWR", "d": "Highest power recorded this ride, W", "z": "", "v": "642"}, {"t": "LAP_PWR", "h": "LAP PWR", "d": "Average power for the current lap, W", "z": "", "v": "198"}, {"t": "LAST_LAP_PWR", "h": "LAST PWR", "d": "Average power for the previous lap, W", "z": "", "v": "205"}, {"t": "NP", "h": "NP", "d": "Normalized power for the ride, W", "z": "", "v": "201"}, {"t": "IF", "h": "IF", "d": "Intensity factor — normalized power divided by FTP", "z": "", "v": "1.01"}, {"t": "TSS", "h": "TSS", "d": "Training stress score accumulated this ride", "z": "", "v": "64"}, {"t": "PWR_PCT_FTP", "h": "% FTP", "d": "Current power as a percentage of FTP", "z": "pwr", "v": "102%"}, {"t": "W_KG", "h": "W/KG", "d": "Current power per kilogram, using the weight in your Garmin profile", "z": "pwr", "v": "2.9"}, {"t": "PWR_ZONE", "h": "PWR ZONE", "d": "Current power zone, 1 to 7", "z": "pwr", "v": "4"}, {"t": "KJ", "h": "KJ", "d": "Total work done this ride, kilojoules", "z": "", "v": "1240"}]}, {"name": "Heart rate", "items": [{"t": "HR", "h": "HR", "d": "Current heart rate, bpm", "z": "hr", "v": "148"}, {"t": "AVG_HR", "h": "AVG HR", "d": "Average heart rate for the whole ride, bpm", "z": "", "v": "142"}, {"t": "MAX_HR", "h": "MAX HR", "d": "Highest heart rate recorded this ride, bpm", "z": "", "v": "176"}, {"t": "LAP_HR", "h": "LAP HR", "d": "Average heart rate for the current lap, bpm", "z": "", "v": "145"}, {"t": "LAST_LAP_HR", "h": "LAST HR", "d": "Average heart rate for the previous lap, bpm", "z": "", "v": "139"}, {"t": "HR_PCT_MAX", "h": "% MAX HR", "d": "Current heart rate as a percentage of your maximum", "z": "hr", "v": "84%"}, {"t": "HR_PCT_RESERVE", "h": "% HRR", "d": "Current heart rate as a percentage of heart rate reserve", "z": "hr", "v": "71%"}, {"t": "HR_ZONE", "h": "HR ZONE", "d": "Current heart rate zone, 1 to 5", "z": "hr", "v": "2"}, {"t": "TIME_IN_ZONE", "h": "IN ZONE", "d": "Time spent in the current zone, restarting whenever the zone changes", "z": "hr", "v": "04:12"}]}, {"name": "Cadence", "items": [{"t": "CAD", "h": "CAD", "d": "Current cadence, rpm", "z": "cad", "v": "91"}, {"t": "AVG_CAD", "h": "AVG CAD", "d": "Average cadence for the whole ride, rpm", "z": "", "v": "87"}, {"t": "MAX_CAD", "h": "MAX CAD", "d": "Highest cadence recorded this ride, rpm", "z": "", "v": "118"}, {"t": "LAP_CAD", "h": "LAP CAD", "d": "Average cadence for the current lap, rpm", "z": "", "v": "89"}, {"t": "LAST_LAP_CAD", "h": "LAST CAD", "d": "Average cadence for the previous lap, rpm", "z": "", "v": "92"}]}, {"name": "Speed and distance", "items": [{"t": "SPD", "h": "SPD", "d": "Current speed, km/h", "z": "", "v": "31"}, {"t": "AVG_SPD", "h": "AVG SPD", "d": "Average speed for the whole ride, km/h", "z": "", "v": "28"}, {"t": "MAX_SPD", "h": "MAX SPD", "d": "Highest speed recorded this ride, km/h", "z": "", "v": "64"}, {"t": "LAP_SPD", "h": "LAP SPD", "d": "Average speed for the current lap, km/h", "z": "", "v": "29"}, {"t": "LAST_LAP_SPD", "h": "LAST SPD", "d": "Average speed for the previous lap, km/h", "z": "", "v": "30"}, {"t": "DIST", "h": "DIST", "d": "Distance covered this ride, km", "z": "", "v": "42.7"}, {"t": "LAP_DIST", "h": "LAP DIST", "d": "Distance covered in the current lap, km", "z": "", "v": "8.4"}, {"t": "LAST_LAP_DIST", "h": "LAST DIST", "d": "Distance covered in the previous lap, km", "z": "", "v": "9.1"}]}, {"name": "Time", "items": [{"t": "DAY_TIME_24", "h": "TIME", "d": "Time of day, 24-hour clock", "z": "", "v": "19:41"}, {"t": "DAY_TIME_12", "h": "TIME", "d": "Time of day, 12-hour clock", "z": "", "v": "7:41"}, {"t": "TIMER", "h": "TIMER", "d": "Riding time, with stops excluded by auto-pause", "z": "", "v": "1:24:07"}, {"t": "ELAPSED", "h": "ELAPSED", "d": "Total time since the ride started, stops included", "z": "", "v": "1:31:52"}, {"t": "STOPPED_TIME", "h": "STOPPED", "d": "Time spent stopped — elapsed time minus riding time", "z": "", "v": "07:45"}, {"t": "LAP_TIME", "h": "LAP TIME", "d": "Time on the current lap", "z": "", "v": "14:22"}, {"t": "LAST_LAP_TIME", "h": "LAST LAP", "d": "Time the previous lap took", "z": "", "v": "12:58"}, {"t": "LAP_NUMBER", "h": "LAP", "d": "Which lap you are on", "z": "", "v": "4"}]}, {"name": "Elevation", "items": [{"t": "ALT", "h": "ALT", "d": "Current altitude, m", "z": "", "v": "412"}, {"t": "ASCENT", "h": "ASCENT", "d": "Total climbing this ride, m", "z": "", "v": "684"}, {"t": "DESCENT", "h": "DESCENT", "d": "Total descending this ride, m", "z": "", "v": "611"}, {"t": "LAP_ASCENT", "h": "LAP ASC", "d": "Climbing on the current lap, m", "z": "", "v": "142"}, {"t": "LAP_DESCENT", "h": "LAP DESC", "d": "Descending on the current lap, m", "z": "", "v": "98"}, {"t": "GRD", "h": "GRD %", "d": "Current gradient, %", "z": "", "v": "-3"}, {"t": "VAM", "h": "VAM", "d": "Climb rate, metres per hour", "z": "", "v": "640"}]}, {"name": "Navigation", "items": [{"t": "DIST_TO_DEST", "h": "DIST LEFT", "d": "Distance still to go, km", "z": "", "v": "18.6"}, {"t": "TIME_TO_DEST", "h": "TIME LEFT", "d": "Estimated time still to go", "z": "", "v": "38:20"}, {"t": "ETA", "h": "ETA", "d": "Estimated time of arrival, clock time", "z": "", "v": "20:15"}, {"t": "ALT_AT_DEST", "h": "DEST ALT", "d": "Altitude at the destination, m", "z": "", "v": "96"}, {"t": "DIST_TO_NEXT", "h": "NEXT DIST", "d": "Distance to the next course point, km", "z": "", "v": "2.4"}, {"t": "ALT_AT_NEXT", "h": "NEXT ALT", "d": "Altitude at the next course point, m", "z": "", "v": "501"}, {"t": "NEXT_POINT", "h": "NEXT", "d": "Name of the next course point", "z": "", "v": "Col"}, {"t": "DEST_NAME", "h": "DEST", "d": "Name of the destination", "z": "", "v": "Home"}, {"t": "OFF_COURSE", "h": "OFF CRS", "d": "How far you are from the course, m", "z": "", "v": "12"}, {"t": "BEARING", "h": "BEARING", "d": "Direction to the destination, degrees", "z": "", "v": "142°"}, {"t": "HEADING", "h": "HEADING", "d": "Direction you are facing, degrees", "z": "", "v": "138°"}, {"t": "TRACK", "h": "TRACK", "d": "Direction you are travelling, from GPS, degrees", "z": "", "v": "140°"}, {"t": "BEARING_START", "h": "TO START", "d": "Direction back to where you started, degrees", "z": "", "v": "318°"}]}, {"name": "Drivetrain", "items": [{"t": "GEAR_FRONT", "h": "FRONT", "d": "Front chainring position", "z": "", "v": "2"}, {"t": "GEAR_REAR", "h": "REAR", "d": "Rear sprocket position", "z": "", "v": "7"}, {"t": "GEARS", "h": "GEARS", "d": "Both at once, as teeth if the groupset reports them, otherwise positions", "z": "", "v": "50/17"}, {"t": "GEAR_RATIO", "h": "RATIO", "d": "Front teeth divided by rear teeth", "z": "", "v": "2.94"}]}, {"name": "Weather", "items": [{"t": "WEATHER_TEMP", "h": "AIR TEMP", "d": "Air temperature from the forecast, °C", "z": "", "v": "16°C"}, {"t": "FEELS_LIKE", "h": "FEELS", "d": "Wind chill or heat index, °C", "z": "", "v": "14°C"}, {"t": "WIND_SPD", "h": "WIND", "d": "Wind speed, km/h", "z": "", "v": "12"}, {"t": "WIND_DIR", "h": "WIND DIR", "d": "Direction the wind blows from, degrees", "z": "", "v": "290°"}, {"t": "WIND_REL", "h": "WIND REL", "d": "Wind relative to your heading — `HEAD`, `TAIL` or `CROSS`", "z": "", "v": "HEAD"}, {"t": "HUMIDITY", "h": "HUMID", "d": "Relative humidity, %", "z": "", "v": "62%"}, {"t": "PRECIP_CHANCE", "h": "RAIN %", "d": "Chance of precipitation, %", "z": "", "v": "10%"}, {"t": "DEW_POINT", "h": "DEW PT", "d": "Dew point, °C", "z": "", "v": "--"}, {"t": "UV_INDEX", "h": "UV", "d": "UV index", "z": "", "v": "3"}]}, {"name": "Device and environment", "items": [{"t": "TEMP_C", "h": "TEMP", "d": "Temperature from the Edge's own thermometer, °C — refreshed every 5 minutes", "z": "", "v": "18°C"}, {"t": "PRESSURE", "h": "PRESS", "d": "Barometric pressure where you are, hPa", "z": "", "v": "1013"}, {"t": "SEA_PRESSURE", "h": "SEA PRESS", "d": "Pressure corrected to sea level, hPa", "z": "", "v": "1019"}, {"t": "BATTERY", "h": "BATT", "d": "Battery charge, %", "z": "", "v": "82%"}, {"t": "BATTERY_HOURS", "h": "BATT HRS", "d": "Rough estimate of battery life left, hours", "z": "", "v": "14h"}, {"t": "GPS_ACCURACY", "h": "GPS", "d": "GPS quality — `GOOD`, `OK`, `POOR`, `OLD` or `NONE`", "z": "", "v": "GOOD"}, {"t": "CALORIES", "h": "CAL", "d": "Calories burned this ride, kcal", "z": "", "v": "980"}, {"t": "TRAINING_EFFECT", "h": "TE", "d": "Aerobic training effect score for this ride", "z": "", "v": "3.4"}]}], "palette": {"pwr": ["0xFFFFFF", "0x6ab5ff", "0x7bff98", "0xfffa6c", "0xff975e", "0xff6a7c", "0x9a78ff"], "hr": ["0xFFFFFF", "0x6ab5ff", "0x7bff98", "0xff975e", "0xff6a7c"], "cad": ["0x6ab5ff", "0x7bff98", "0xff975e"]}};
+
+/* ---- device constants, mirroring Config.mc ---- */
+const W = 246, H = 322, STATUS_H = 22, HEADER_H = 22, LIFT = 4, MAX_SETTING = 160;
+const RULE = "#aaaaaa", LABEL_FG = "#444444", VALUE_BG = "#ffffff", VALUE_FG = "#000000";
+const NUM_FONTS = [56, 42, 36];              // box heights: NUMBER_HOT / MEDIUM / MILD
+const TEXT_FONTS = [41, 26, 22, 20, 13];     // LARGE / MEDIUM / SMALL / TINY / XTINY
+const LABEL_FONT = 22;
+
+const BY_TOKEN = {};
+DATA.groups.forEach(g => g.items.forEach(i => { i.group = g.name; BY_TOKEN[i.t] = i; }));
+
+const DEFAULT_ROWS = [
+  {status:false, tiles:["3S_PWR"]},
+  {status:false, tiles:["SPD","HR"]},
+  {status:false, tiles:["CAD","ALT"]},
+  {status:false, tiles:["LAP_SPD","LAP_DIST"]},
+  {status:false, tiles:["LAP_PWR","LAP_TIME"]},
+  {status:true,  tiles:["DAY_TIME_24","DIST","TEMP_C"]},
+];
+
+let rows = JSON.parse(JSON.stringify(DEFAULT_ROWS));
+let active = 0, zone = 4, scale = 1;
+let drag = null;   // {from:"palette"|"row", token, row, index}
+
+/* ---- text measurement, same rule the field uses ---- */
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+const widthOf = (text, size, bold) =>
+  (ctx.font = `${bold ? 700 : 400} ${size}px "Roboto Condensed", sans-serif`, ctx.measureText(text).width);
+const isNumeric = t => /^[0-9:.\-]+$/.test(t);
+
+function pickFont(text, maxW, maxH) {
+  if (isNumeric(text))
+    for (const h of NUM_FONTS)
+      if (h <= maxH * 1.15 && widthOf(text, h, true) <= maxW) return h;
+  for (const h of TEXT_FONTS)
+    if (h <= maxH && widthOf(text, h, true) <= maxW) return h;
+  return 13;
+}
+function fitLabel(text, maxW) {
+  for (const h of [LABEL_FONT, 20, 13]) if (widthOf(text, h, false) <= maxW) return h;
+  return 13;
+}
+
+/* ---- zone colour for a tinted field ---- */
+function zoneFill(item) {
+  if (!item.z) return VALUE_BG;
+  const p = DATA.palette[item.z];
+  const idx = Math.min(Math.max(zone, 1), p.length) - 1;
+  return p[idx].replace("0x", "#");
+}
+function zoneBadge(item) {
+  if (!item.z || item.z === "cad") return null;
+  const p = DATA.palette[item.z];
+  return "z" + Math.min(Math.max(zone, 1), p.length);
+}
+
+/* ---- palette ---- */
+function renderPalette() {
+  const host = document.getElementById("palette");
+  host.innerHTML = DATA.groups.map((g, gi) => `
+    <div class="grp">
+      <button data-g="${gi}" aria-expanded="${gi < 3}">
+        <span>${g.name}</span><span class="count">${g.items.length}</span>
+      </button>
+      <div class="chips" ${gi < 3 ? "" : "hidden"}>
+        ${g.items.map(i => {
+          const p = i.z ? DATA.palette[i.z] : null;
+          const dot = p ? `<span class="dot" style="--z1:${p[1].replace("0x","#")};--z2:${p[p.length-1].replace("0x","#")}"></span>` : "";
+          return `<span class="chip" draggable="true" data-token="${i.t}" title="${i.d.replace(/"/g,"&quot;")}">
+                    ${dot}<span>${i.h}</span><code>${i.t}</code></span>`;
+        }).join("")}
+      </div>
+    </div>`).join("");
+
+  host.querySelectorAll(".grp > button").forEach(b => b.onclick = () => {
+    const box = b.nextElementSibling;
+    box.hidden = !box.hidden;
+    b.setAttribute("aria-expanded", String(!box.hidden));
+  });
+  host.querySelectorAll(".chip").forEach(c => {
+    c.ondragstart = e => { drag = {from:"palette", token:c.dataset.token};
+                           e.dataTransfer.effectAllowed = "copy"; };
+    c.onclick = () => { addTile(c.dataset.token); };
+  });
+}
+
+/* ---- stack ---- */
+function renderStack() {
+  const host = document.getElementById("stack");
+  if (!rows.length) { host.innerHTML = `<p class="empty">No rows yet — add one, or drag a field here.</p>`; }
+  else host.innerHTML = rows.map((r, ri) => `
+      <div class="gap" data-gap="${ri}"></div>
+      <div class="row ${ri === active ? "on" : ""}" data-row="${ri}">
+        <div class="tiles">
+          ${r.tiles.length ? r.tiles.map((t, ti) => {
+            const it = BY_TOKEN[t];
+            return `<span class="tile-chip" draggable="true" data-row="${ri}" data-idx="${ti}">
+                      <span>${it ? it.h : t}</span><code>${t}</code>
+                      <button data-del="${ri}:${ti}" title="Remove">&times;</button></span>`;
+          }).join("") : `<span class="empty">empty row</span>`}
+        </div>
+        <div class="side">
+          <span class="ctl grip" draggable="true" data-move="${ri}" title="Drag to reorder this row">&#8801;</span>
+          <button class="ctl ${r.status ? "act" : ""}" data-status="${ri}" title="Status strip: no headers, no tint">=</button>
+          <button class="ctl" data-delrow="${ri}" title="Delete row">&times;</button>
+        </div>
+      </div>`).join("") + `<div class="gap" data-gap="${rows.length}"></div>`;
+
+  host.querySelectorAll(".row").forEach(el => {
+    const ri = +el.dataset.row;
+    el.onclick = e => { if (!e.target.closest("button")) { active = ri; render(); } };
+    el.ondragover = e => { e.preventDefault(); el.classList.add("on"); };
+    el.ondragleave = () => { if (ri !== active) el.classList.remove("on"); };
+    el.ondrop = e => { e.preventDefault(); el.classList.remove("on"); dropInto(ri); };
+  });
+  host.querySelectorAll(".gap").forEach(el => {
+    el.ondragover = e => { e.preventDefault(); el.classList.add("on"); };
+    el.ondragleave = () => el.classList.remove("on");
+    el.ondrop = e => { e.preventDefault(); el.classList.remove("on"); dropAtGap(+el.dataset.gap); };
+  });
+  host.querySelectorAll(".grip").forEach(el => {
+    el.ondragstart = e => {
+      drag = {from:"rowmove", row:+el.dataset.move};
+      e.dataTransfer.effectAllowed = "move";
+      el.closest(".row").classList.add("moving");
+    };
+    el.ondragend = () => host.querySelectorAll(".moving").forEach(r => r.classList.remove("moving"));
+  });
+  host.querySelectorAll(".tile-chip").forEach(el => {
+    el.ondragstart = e => { drag = {from:"row", row:+el.dataset.row, index:+el.dataset.idx};
+                            e.dataTransfer.effectAllowed = "move"; };
+  });
+  host.querySelectorAll("[data-del]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const [ri, ti] = b.dataset.del.split(":").map(Number);
+    rows[ri].tiles.splice(ti, 1); render();
+  });
+  host.querySelectorAll("[data-delrow]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    rows.splice(+b.dataset.delrow, 1);
+    active = Math.min(active, rows.length - 1); render();
+  });
+  host.querySelectorAll("[data-status]").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const r = rows[+b.dataset.status]; r.status = !r.status; render();
+  });
+}
+
+function takeDragged() {
+  if (!drag) return null;
+  if (drag.from === "palette") return drag.token;
+  const t = rows[drag.row].tiles.splice(drag.index, 1)[0];
+  return t;
+}
+function dropInto(ri) {
+  // A row dragged onto another row does nothing; rows reorder through the gaps,
+  // where the intended position is unambiguous.
+  if (!drag || drag.from === "rowmove") { drag = null; render(); return; }
+  const t = takeDragged(); drag = null;
+  if (!t) return;
+  rows[ri].tiles.push(t); active = ri; render();
+}
+function dropAtGap(at) {
+  if (!drag) return;
+  if (drag.from === "rowmove") {
+    const [moved] = rows.splice(drag.row, 1);
+    const target = at > drag.row ? at - 1 : at;   // the splice shifted everything after it
+    rows.splice(target, 0, moved);
+    active = target;
+  } else {
+    const t = takeDragged();
+    if (t) { rows.splice(at, 0, {status:false, tiles:[t]}); active = at; }
+  }
+  drag = null; render();
+}
+function addTile(token) {
+  if (!rows.length) rows.push({status:false, tiles:[]});
+  active = Math.min(Math.max(active, 0), rows.length - 1);
+  rows[active].tiles.push(token); render();
+}
+
+/* ---- device render ---- */
+function renderScreen() {
+  document.documentElement.style.setProperty("--u", scale + "px");
+  const screen = document.getElementById("screen");
+  const live = rows.filter(r => r.tiles.length);
+  if (!live.length) { screen.innerHTML = ""; return; }
+
+  const statusRows = live.filter(r => r.status).length;
+  const tileRows = live.length - statusRows;
+  const band = H - STATUS_H * statusRows;
+  const tileH = tileRows ? band / tileRows : 0;
+
+  screen.innerHTML = live.map((r, ri) => {
+    const h = r.status ? STATUS_H : tileH;
+    const cellW = W / r.tiles.length;
+
+    if (r.status) {
+      const n = r.tiles.length;
+      return `<div class="srow sstatus" style="height:calc(${h}*var(--u));font-size:calc(${LABEL_FONT}*var(--u))">
+        ${r.tiles.map((t, i) => {
+          const it = BY_TOKEN[t] || {v:"--"};
+          const align = n === 1 ? "center" : i === 0 ? "flex-start" : i === n-1 ? "flex-end" : "center";
+          return `<span style="flex:1;display:flex;justify-content:${align}">${it.v}</span>`;
+        }).join("")}</div>`;
+    }
+
+    const valueH = h - HEADER_H;
+    return `<div class="srow" style="height:calc(${h}*var(--u))">
+      ${r.tiles.map(t => {
+        const it = BY_TOKEN[t] || {h:t, v:"?"};
+        const fill = zoneFill(it);
+        const badge = zoneBadge(it);
+        const labelText = it.h || t;
+        const lf = fitLabel(labelText + (badge ? "  " + badge : ""), cellW - 6);
+        const vf = pickFont(it.v, cellW - 6, valueH);
+        return `<div class="stile" style="background:${fill}">
+          ${ri > 0 ? `<div class="rule"></div>` : ""}
+          <div class="lb" style="font-size:calc(${lf}*var(--u))">
+            <span>${labelText}</span>${badge ? `<b>${badge}</b>` : ""}</div>
+          <div class="vl" style="top:calc(${HEADER_H}*var(--u));height:calc(${valueH}*var(--u));
+                                 font-size:calc(${vf}*var(--u));transform:translateY(calc(${-LIFT}*var(--u)))">
+            ${it.v}</div>
+        </div>`;
+      }).join("")}</div>`;
+  }).join("");
+
+  const shortest = tileRows ? Math.round(tileH - HEADER_H) : 0;
+  document.getElementById("rowinfo").textContent =
+    `${tileRows} tile row${tileRows === 1 ? "" : "s"}, ${Math.round(tileH)} px each · value band ${shortest} px`;
+}
+
+/* ---- config text ---- */
+function renderOutput() {
+  const live = rows.filter(r => r.tiles.length);
+  const asRow = r => r.status ? `= ${r.tiles.join(" ")} =` : r.tiles.join(" ");
+  const oneline = live.map(asRow).join("; ");
+  document.getElementById("oneline").value = oneline;
+
+  const len = document.getElementById("len");
+  const over = oneline.length > MAX_SETTING;
+  len.innerHTML = `<span class="${over ? "warn" : "ok"}">${oneline.length}</span> / ${MAX_SETTING} characters`
+    + (over ? " — too long for the setting field" : "");
+
+}
+
+function render() { renderStack(); renderScreen(); renderOutput(); }
+
+/* ---- controls ---- */
+document.getElementById("addRow").onclick = () => { rows.push({status:false, tiles:[]}); active = rows.length-1; render(); };
+document.getElementById("addStatus").onclick = () => { rows.push({status:true, tiles:[]}); active = rows.length-1; render(); };
+document.getElementById("clear").onclick = () => { rows = []; active = 0; render(); };
+document.getElementById("loadDefault").onclick = () => { rows = JSON.parse(JSON.stringify(DEFAULT_ROWS)); active = 0; render(); };
+
+document.querySelectorAll("[data-copy]").forEach(b => b.onclick = async () => {
+  const el = document.getElementById(b.dataset.copy);
+  try { await navigator.clipboard.writeText(el.value); b.textContent = "Copied"; }
+  catch { el.select(); b.textContent = "Select + ⌘C"; }
+  setTimeout(() => b.textContent = "Copy", 1400);
+});
+
+const zoneBtns = document.getElementById("zoneBtns");
+zoneBtns.innerHTML = [1,2,3,4,5,6,7].map(z => `<button data-z="${z}">${z}</button>`).join("");
+zoneBtns.onclick = e => { const b = e.target.closest("button"); if (!b) return;
+  zone = +b.dataset.z; syncZone(); renderScreen(); };
+function syncZone(){ zoneBtns.querySelectorAll("button").forEach(b => b.classList.toggle("sel", +b.dataset.z === zone)); }
+
+const scaleBtns = document.getElementById("scaleBtns");
+scaleBtns.innerHTML = [1,2,3].map(s => `<button data-s="${s}">${s}&times;</button>`).join("");
+scaleBtns.onclick = e => { const b = e.target.closest("button"); if (!b) return;
+  scale = +b.dataset.s; syncScale(); renderScreen(); };
+function syncScale(){ scaleBtns.querySelectorAll("button").forEach(b => b.classList.toggle("sel", +b.dataset.s === scale)); }
+
+document.addEventListener("dragend", () => {
+  document.querySelectorAll(".gap.on").forEach(el => el.classList.remove("on"));
+  drag = null;
+});
+
+renderPalette(); syncZone(); syncScale();
+document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>

@@ -99,7 +99,18 @@ resources/
   strings/strings.xml     app name and setting labels
   drawables/              launcher icon
 bin/                      build output, ZebraTiles.prg
+tools/
+  settings.py             edit the app's settings on a sideloaded device over USB
+  layout-builder.html     assemble a layout by dragging fields; previews the screen
+  build-layout-builder.py refresh the builder's token data from the source
 ```
+
+The builder embeds every token, its header, which fields are zone-tinted and the zone
+palettes. All of that already exists in `Fields.mc` and `Config.mc`, so it is extracted
+rather than retyped: run `tools/build-layout-builder.py` after adding a field or changing a
+palette, or `--check` to be told whether it has drifted. It also reports a token that
+appears in only one of `FIELDS.md` and `Fields.mc`, which otherwise goes unnoticed until
+the field renders as `?`.
 
 The interesting seams:
 
