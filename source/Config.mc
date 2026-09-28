@@ -87,9 +87,9 @@ module Config {
     const PAD = 3;
     const LABEL_GAP = 7;
 
-    // Garmin-style zone colors: Z1 grey, then blue / green / yellow / orange / red.
-    const HR_COLORS = [0x9A9A9A, 0x3399FF, 0x55CC55, 0xFF9900, 0xFF3322];
-    const PWR_COLORS = [0x9A9A9A, 0x3399FF, 0x55CC55, 0xFFCC33, 0xFF9900, 0xFF3322, 0xCC0055];
+    // Garmin-style zone colors: Z1 white, then blue / green / yellow / orange / red.
+    const HR_COLORS = [0xFFFFFF, 0x6ab5ff, 0x7bff98, 0xff975e, 0xff6a7c];
+    const PWR_COLORS = [0xFFFFFF, 0x6ab5ff, 0x7bff98, 0xfffa6c, 0xff975e, 0xff6a7c, 0x9a78ff];
 
     // Derived metrics
     const PWR_WINDOW = 30;       //!< Longest rolling power window, seconds. Also the NP window.
@@ -106,7 +106,7 @@ module Config {
     //! grinding, too high means spinning out, and the good place is in between.
     //! So it gets a diverging palette - below the range, inside, above - rather
     //! than the intensity ramp the power and heart rate zones use.
-    const CAD_COLORS = [0x3399FF, 0x55CC55, 0xFF9900];
+    const CAD_COLORS = [0x6ab5ff, 0x7bff98, 0xff975e];
     const DEFAULT_CAD_MIN = 85;
     const DEFAULT_CAD_MAX = 95;
 
