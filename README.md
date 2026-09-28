@@ -103,6 +103,8 @@ tools/
   settings.py             edit the app's settings on a sideloaded device over USB
   layout-builder.html     assemble a layout by dragging fields; previews the screen
   build-layout-builder.py refresh the builder's token data from the source
+  install.sh              copy a release build to the Edge, keeping its debug map
+  crashlog.py             resolve the device's crash log into source lines
 ```
 
 The builder embeds every token, its header, which fields are zone-tinted and the zone
