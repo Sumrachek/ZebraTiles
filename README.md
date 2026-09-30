@@ -159,6 +159,16 @@ chainrings large to small, sprockets small to large — and
 `Config.FRONT_INDEX_1_IS_SMALLEST` / `REAR_INDEX_1_IS_SMALLEST` decide where an index lands
 on it. Flip them if the highlight moves the wrong way on the first shift.
 
+### Fields with a painted backdrop
+
+`GRD` is an ordinary field — header, number, the usual formatting — that also paints
+behind itself. `drawGradeWedge` fills the bottom third of the tile with its top edge
+tilted by the gradient, column by column since the device's polygon fill does not work,
+and `gradeColor` reads the fill colour off `Config.GRADE_COLORS` by the size of the
+gradient. Nine stops, not the three named ones: interpolating green to pink to purple
+alone lands a visibly wrong hue midway along each half. The sign only decides which way
+the wedge leans, and the colour holds at both ends of the ramp.
+
 ### Adding a field
 
 1. Add a constant to the `enum` in `Fields.mc`.

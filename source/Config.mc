@@ -79,6 +79,21 @@ module Config {
     //! when they are picked, and at that size a little is several pixels.
     const GEAR_TEXT_SCALE = 0.85;
 
+    //! GRD is drawn on a coloured wedge: the bottom third of the tile, its top
+    //! edge tilted by the gradient so the picture leans the way the road does,
+    //! and its colour taken from the ramp below. Downhill is the same colours
+    //! mirrored - the ramp is read off the size of the gradient, the sign only
+    //! decides which way the wedge leans.
+    //!
+    //! The ramp is sampled from the reference strip, nine stops rather than the
+    //! three named ones: interpolating green to pink to purple alone lands a
+    //! visibly different hue midway along each half.
+    const GRADE_TILT = 1.0;      //!< Multiplies the gradient before it becomes a slope.
+    const GRADE_BAND = 0.333;    //!< Wedge height as a fraction of the tile.
+    const GRADE_MAX_PCT = 20.0;  //!< Beyond this the number keeps rising, the colour does not.
+    const GRADE_COLORS = [0x85FF71, 0xB4E972, 0xE1C572, 0xFC9B73, 0xFF7978,
+                          0xE36882, 0xBE588E, 0x944F97, 0x79479A];
+
     const ZONE_FG = 0xFFFFFF;
     const VALUE_BG = 0xFFFFFF;
     const VALUE_FG = 0x000000;

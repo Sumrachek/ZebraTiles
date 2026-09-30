@@ -197,6 +197,10 @@ class ZebraTilesView extends WatchUi.DataField {
         }
         drawHeader(dc, Fields.labelFor(cell), Zones.badgeFor(kind, zone), x, y, w, headerH);
 
+        if (cell.code == Fields.F_GRD) {
+            drawGradeWedge(dc, x, y, w, h, headerIsPainted() ? y + headerH : y);
+        }
+
         var text = Fields.textFor(cell, mMetrics);
         var font = pickFont(dc, text, w - (2 * Config.PAD), valueH);
         var middle = y + headerH + (valueH / 2);
@@ -311,12 +315,12 @@ class ZebraTilesView extends WatchUi.DataField {
         // Only the known halves are joined. Padding a missing one out to "--"
         // reads as "52---", which looks like a fault rather than a missing value.
         if (f == null) {
-            return r.format("%d");
+            return (r as Number).format("%d");
         }
         if (r == null) {
-            return f.format("%d");
+            return (f as Number).format("%d");
         }
-        return f.format("%d") + "-" + r.format("%d");
+        return (f as Number).format("%d") + "-" + (r as Number).format("%d");
     }
 
     //! Zero means "not broadcast" here, not a real sprocket.
@@ -377,6 +381,53 @@ class ZebraTilesView extends WatchUi.DataField {
         if (n < low) { n = low; }
         if (n > high) { n = high; }
         return n;
+    }
+
+    //! The gradient as a wedge under the number: the bottom third of the tile with
+    //! its top edge tilted to match the road. Drawn column by column, since the
+    //! device has no polygon fill that works.
+    hidden function drawGradeWedge(dc as Dc, x as Number, y as Number, w as Number, h as Number, ceiling as Number) as Void {
+        var grade = mMetrics.grade;
+        if (grade == null) {
+            return;
+        }
+        var color = gradeColor(grade);
+        dc.setColor(color, color);
+
+        var bottom = y + h;
+        var base = bottom - (h * Config.GRADE_BAND);
+        var slope = grade / 100.0 * Config.GRADE_TILT;
+        var middle = w / 2.0;
+
+        for (var col = 0; col < w; col++) {
+            var top = base - ((col - middle) * slope);
+            if (top < ceiling) { top = ceiling; }
+            if (top >= bottom) { continue; }
+            dc.fillRectangle(x + col, top.toNumber(), 1, bottom - top.toNumber());
+        }
+    }
+
+    //! The ramp read off the size of the gradient, held at both ends.
+    hidden function gradeColor(grade as Numeric) as Number {
+        var stops = Config.GRADE_COLORS;
+        var last = stops.size() - 1;
+        var size = (grade < 0) ? -grade : grade;
+        if (size >= Config.GRADE_MAX_PCT) {
+            return stops[last];
+        }
+        var at = size / Config.GRADE_MAX_PCT * last;
+        var i = at.toNumber();
+        if (i >= last) {
+            return stops[last];
+        }
+        return blend(stops[i], stops[i + 1], at - i);
+    }
+
+    hidden function blend(from as Number, to as Number, f as Numeric) as Number {
+        var r = ((from >> 16) & 0xFF) + ((((to >> 16) & 0xFF) - ((from >> 16) & 0xFF)) * f);
+        var g = ((from >> 8) & 0xFF) + ((((to >> 8) & 0xFF) - ((from >> 8) & 0xFF)) * f);
+        var b = (from & 0xFF) + (((to & 0xFF) - (from & 0xFF)) * f);
+        return (r.toNumber() << 16) | (g.toNumber() << 8) | b.toNumber();
     }
 
     //! Stripes of the neighbouring zones' colours, creeping in from whichever side

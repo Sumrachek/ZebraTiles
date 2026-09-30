@@ -129,6 +129,11 @@ since a cadence of zero really is below your range.
 `GRD` and `VAM` are worked out from altitude and distance, so both need a short run-up
 before they settle: the gradient after about 20 m of riding, the climb rate after 30 s.
 
+`GRD` also draws under its number: the bottom third of the tile is a wedge whose top edge
+leans the way the road does and whose colour runs green through pink to purple as the
+gradient steepens. Downhill gets the same colours, the wedge just leans the other way, and
+past 20 % the number keeps climbing while the colour stays put.
+
 ## Navigation
 
 Blank unless you are following a course or navigating to a destination.
