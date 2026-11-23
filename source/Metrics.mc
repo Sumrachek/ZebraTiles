@@ -349,9 +349,6 @@ class Metrics {
         mStatsTick = Config.STATS_PERIOD;
 
         var stats = System.getSystemStats();
-        if (stats == null) {
-            return;
-        }
         battery = stats.battery;
         if (stats has :batteryInDays && stats.batteryInDays != null) {
             batteryHours = (stats.batteryInDays as Numeric) * 24.0;
