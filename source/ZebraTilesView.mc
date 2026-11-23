@@ -86,6 +86,15 @@ class ZebraTilesView extends WatchUi.DataField {
         if (text.length() != 6) {
             return fallback;
         }
+        // toNumberWithBase() parses a valid prefix and silently drops the rest,
+        // so "12345G" would come back as 0x12345 - check every digit first.
+        var chars = text.toUpper().toCharArray();
+        for (var i = 0; i < chars.size(); i++) {
+            var c = chars[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) {
+                return fallback;
+            }
+        }
 
         var value = text.toNumberWithBase(16);
         if (value == null || value < 0 || value > 0xFFFFFF) {
