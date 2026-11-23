@@ -5,8 +5,8 @@ and draws a grid of tiles. The tile arrangement is described by a few lines of t
 rather than hard-coded; heart-rate and power tiles are tinted by training zone and
 carry a zone badge (`z4`) in their header.
 
-The layout in *Layout language* below is the one the original design mock specified,
-and is what the field ships with.
+The layout in *Layout language* below is what the field ships with: the original design
+mock's layout plus a `LAP_SPD GEAR_MAP` row.
 
 - Target device: Edge 530 only (246 × 322, Connect IQ 3.3, buttons — no touch)
 - App type: `datafield`, min API level 3.3.0
@@ -38,6 +38,7 @@ The screen is described by plain text. This is the built-in default:
 3s_PWR
 SPD HR
 CAD GRD
+LAP_SPD GEAR_MAP
 LAP_PWR LAP_TIME
 = day_time_24 dist temp_c =
 ```
@@ -71,7 +72,7 @@ Two ways, and the second wins when it is non-empty:
    [FIELDS.md](FIELDS.md).
 2. Set the **Layout** app setting from Garmin Connect Mobile. That input is single-line,
    so separate rows with `;`:
-   `3s_pwr; spd hr; cad grd; lap_pwr lap_time; = day_time_24 dist temp_c =`
+   `3s_pwr; spd hr; cad grd; lap_spd gear_map; lap_pwr lap_time; = day_time_24 dist temp_c =`
 
 ---
 
