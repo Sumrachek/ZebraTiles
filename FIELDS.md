@@ -8,7 +8,7 @@ See [README](README.md#layout-language) for the layout syntax.
 3s_PWR
 SPD HR
 CAD GRD
-LAP_SPD GEAR_MAP
+LAP_SPD LAP_DIST
 LAP_PWR LAP_TIME
 = day_time_24 dist temp_c =
 ```

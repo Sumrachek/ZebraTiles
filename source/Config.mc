@@ -11,7 +11,7 @@ module Config {
         "3s_PWR\n" +
         "SPD HR\n" +
         "CAD GRD\n" +
-        "LAP_SPD GEAR_MAP\n" +
+        "LAP_SPD LAP_DIST\n" +
         "LAP_PWR LAP_TIME\n" +
         "= day_time_24 dist temp_c =";
 
