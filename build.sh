@@ -17,6 +17,7 @@ PROJECT="$ROOT"
 DEVICE="${CIQ_DEVICE:-edge530}"
 KEY="${CIQ_KEY:-$ROOT/developer_key}"
 PRG="$PROJECT/bin/ZebraTiles.prg"
+IQ="$PROJECT/bin/ZebraTiles.iq"
 
 die() {
     echo "error: $*" >&2
@@ -44,19 +45,25 @@ SDK="$(resolve_sdk)"
 [[ -f "$KEY" ]] || die "no developer key at $KEY - VS Code: 'Monkey C: Generate a Developer Key'"
 
 ciq_build() {
-    local args=(-d "$DEVICE" -f "$PROJECT/monkey.jungle" -o "$PRG" -y "$KEY" -w -l 2)
+    local args=(-f "$PROJECT/monkey.jungle" -y "$KEY" -w -l 2)
+    local out="$PRG" target="$DEVICE"
 
     for arg in "$@"; do
         case "$arg" in
             --release) args+=(-r) ;;
+            # A store bundle covers every product in the manifest, and monkeyc
+            # refuses an export whose output does not end in .iq.
+            -e|--package-app) args+=("$arg"); out="$IQ"; target="" ;;
             *) args+=("$arg") ;;
         esac
     done
+    args+=(-o "$out")
+    [[ -n "$target" ]] && args+=(-d "$target")
 
     mkdir -p "$PROJECT/bin"
     # Run from the project so relative paths inside monkey.jungle resolve.
     (cd "$PROJECT" && "$SDK/bin/monkeyc" "${args[@]}")
-    echo "built $PRG for $DEVICE"
+    echo "built $out${target:+ for $target}"
 }
 
 # Only build when executed; do nothing extra when sourced by run.sh.
