@@ -56,7 +56,7 @@ Rules:
 ### Supported tokens
 
 **[FIELDS.md](FIELDS.md) is the reference to open when you are putting a layout
-together.** It lists all 87 tokens with what each one shows, grouped by power, heart rate,
+together.** It lists all 88 tokens with what each one shows, grouped by power, heart rate,
 cadence, speed and distance, time, elevation, navigation, drivetrain, weather and device
 status, and it says which ones need a power meter, a loaded course, a paired phone or a
 setting filled in.
@@ -102,7 +102,8 @@ resources/
 bin/                      build output, ZebraTiles.prg
 tools/
   settings.py             edit the app's settings on a sideloaded device over USB
-  layout-builder.html     assemble a layout by dragging fields; previews the screen
+  layout-builder.html     assemble a layout by dragging fields; previews the screen.
+                          Hosted at https://sumrachek.github.io/ZebraTiles/
   build-layout-builder.py refresh the builder's token data from the source
   install.sh              copy a release build to the Edge, keeping its debug map
   crashlog.py             resolve the device's crash log into source lines

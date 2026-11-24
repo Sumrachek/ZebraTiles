@@ -1,0 +1,54 @@
+# Publishes tools/layout-builder.html to GitHub Pages as the site's index page.
+#
+# Before publishing, it checks that the page's token data still matches the
+# Monkey C source, so a stale builder never goes out. If the check fails, run
+# tools/build-layout-builder.py and commit the result.
+#
+# One-time setup: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+
+name: Layout builder
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/layout-builder.html
+      - tools/build-layout-builder.py
+      - source/Fields.mc
+      - source/Config.mc
+      - FIELDS.md
+      - .github/workflows/layout-builder.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the builder is in sync with the source
+        run: python3 tools/build-layout-builder.py --check
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp tools/layout-builder.html _site/index.html
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

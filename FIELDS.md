@@ -4,6 +4,9 @@ Every token you can put in a layout. Pick the ones you want, arrange them into r
 put the result in `DEFAULT_LAYOUT` in `source/Config.mc` or in the **Layout** app setting.
 See [README](README.md#layout-language) for the layout syntax.
 
+**[Layout builder](https://sumrachek.github.io/ZebraTiles/)**: drag fields into rows, preview
+the screen, and copy the line for the Layout setting, instead of typing it by hand.
+
 ```
 3s_PWR
 SPD HR

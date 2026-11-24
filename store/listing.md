@@ -26,7 +26,7 @@ ZONE COLOURS
 - Averages, maximums and lap figures stay on a plain background, so a colour always means what you are doing right now.
 
 YOUR OWN LAYOUT
-Pick from 87 fields and arrange them in rows by typing a short line in the app settings in Garmin Connect, for example:
+Pick from 88 fields and arrange them in rows by typing a short line in the app settings in Garmin Connect, for example:
 3s_pwr; spd hr; cad grd; lap_pwr lap_time; = day_time_24 dist temp_c =
 - Rows are separated by ";" and fields within a row by spaces.
 - A row wrapped in "=" becomes a slim status strip.
@@ -56,6 +56,7 @@ SETTINGS (in Garmin Connect)
 - Header background and text colour: hex, e.g. 2B2B2B.
 - Layout: see above.
 
+Layout builder: https://sumrachek.github.io/ZebraTiles/
 Guide and field list: https://github.com/Sumrachek/ZebraTiles/blob/main/FIELDS.md
 ```
 
