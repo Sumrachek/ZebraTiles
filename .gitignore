@@ -10,3 +10,6 @@ developer_key
 
 # Python bytecode
 __pycache__/
+
+# Uncompressed store art; the upload-ready copies live in store/
+store/originals/

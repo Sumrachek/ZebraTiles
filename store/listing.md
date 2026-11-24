@@ -43,7 +43,7 @@ FIELDS INCLUDE
 - Weather from your phone, the Edge's own temperature, battery, GPS accuracy and more.
 
 GOOD TO KNOW
-- Units are metric: km/h, km, metres, °C.
+- Units are metric: km/h, km, metres, degrees C.
 - A field with no data shows "--". For example, power fields show "--" with no power meter paired, and navigation fields show "--" with no course loaded.
 - A mistyped field name shows the name with "?", so typos are easy to spot.
 - The temperature field reads the Edge's built-in thermometer every 5 minutes.
@@ -97,5 +97,13 @@ Free.
 
 ## Assets
 
-- `icon.svg`: 1024×1024 master. Export a PNG at the size the upload form asks for.
-- Screenshots: to do. Planned: 3–4 layouts captured in the simulator.
+Everything uploaded to the store is under 150 KB with no metadata beyond JFIF, which
+are the store's limits.
+
+- `icon.svg`: 1024×1024 master of the launcher icon.
+- `zebra-icon-128.png`: store icon.
+- `screenshot-1.png`, `screenshot-2.png`: simulator captures with the window frame cropped away.
+- `zebra-promoter-1440x720.jpg`, `zebra-promoter-bigger-2.jpg` (1024×1024),
+  `zebra-promoter-big-500.jpg`: promo art.
+- `originals/` holds the uncompressed sources and is not committed: one of them carries C2PA
+  metadata and is 1.2 MB.
