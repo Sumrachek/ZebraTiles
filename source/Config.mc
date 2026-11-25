@@ -101,7 +101,10 @@ module Config {
 
     //! One size for every piece of chrome: tile headers, zone badges and the
     //! status strip. Roboto Condensed 22 px on the Edge 530, which is what
-    //! Garmin's own data field labels use. FONT_XTINY here is only 13 px.
+    //! Garmin's own data field labels use. FONT_XTINY there is only 13 px.
+    //! The header and status bands are exactly this font's height, read from the
+    //! device at draw time, so they follow it from 17 px on an Edge 540 to 33 px
+    //! on an Edge 1050.
     const LABEL_FONT = Graphics.FONT_SMALL;
 
     //! Height of the visible glyph block - capitals and digits, cap line to
@@ -140,9 +143,7 @@ module Config {
     const HINT_TRIGGER = 0.10;    //!< Starts this far into the zone, as a fraction of its span.
     const HINT_MAX_WIDTH = 0.20;  //!< Width at the threshold itself, as a fraction of the tile.
 
-    // Geometry. STATUS_H and HEADER_H are both exactly LABEL_FONT's height.
-    const STATUS_H = 22;
-    const HEADER_H = 22;
+    // Geometry. The header and status bands take LABEL_FONT's height; see there.
     const PAD = 3;
     const LABEL_GAP = 7;
 

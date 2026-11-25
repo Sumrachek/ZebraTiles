@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
-# Builds the ZebraTiles data field for the Edge 530.
+# Builds the ZebraTiles data field. A single .prg is built for one model, the
+# Edge 530 unless CIQ_DEVICE names another (edge1040, edge540, ...); the .iq
+# store bundle covers every model in manifest.xml.
 #
 #   ./build.sh              debug build, warnings and strict type checking on
 #   ./build.sh --release    optimised build, for sideloading onto the device

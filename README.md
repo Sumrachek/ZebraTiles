@@ -1,6 +1,7 @@
 # ZebraTiles
 
-A Connect IQ **data field** for the Garmin Edge 530 that takes over a full data screen
+A Connect IQ **data field** for Garmin Edge bike computers with a colour screen, from the
+Edge 530 on, that takes over a full data screen
 and draws a grid of tiles. The tile arrangement is described by a few lines of text
 rather than hard-coded; heart-rate and power tiles are tinted by training zone and
 carry a zone badge (`z4`) in their header.
@@ -8,9 +9,26 @@ carry a zone badge (`z4`) in their header.
 The layout in *Layout language* below is what the field ships with: the original design
 mock's layout plus a `LAP_SPD LAP_DIST` row.
 
-- Target device: Edge 530 only (246 × 322, Connect IQ 3.3, buttons — no touch)
 - App type: `datafield`, min API level 3.3.0
-- Data field memory budget on this device: 128 KB
+- Data field memory budget: 128 KB on every supported model
+- Developed and calibrated on the Edge 530; the other models are checked in the simulator
+
+| Model | Device id | Screen | API level | Text font |
+|---|---|---|---|---|
+| Edge 530, 830 | `edge530`, `edge830` | 246 × 322 | 3.3 | Roboto Condensed |
+| Edge 540 / 540 Solar, 840 / 840 Solar | `edge540`, `edge840` | 246 × 322 | 6.0 | DejaVu Sans Condensed |
+| Edge MTB | `edgemtb` | 240 × 320 | 6.0 | DejaVu Sans Condensed |
+| Edge 1030, 1030 Bontrager, 1030 Plus | `edge1030`, `edge1030bontrager`, `edge1030plus` | 282 × 470 | 3.3 | Roboto Condensed |
+| Edge 1040 / 1040 Solar | `edge1040` | 282 × 470 | 6.0 | DejaVu Sans Condensed |
+| Edge Explore 2 | `edgeexplore2` | 240 × 400 | 5.1 | DejaVu Sans |
+| Edge 550, 850 | `edge550`, `edge850` | 420 × 600 | 6.0 | DejaVu Sans Condensed |
+| Edge Explore 3, 3 Plus | `edgeexplore3`, `edgeexplore3plus` | 360 × 640 | 6.0 | DejaVu Sans Condensed |
+| Edge 1050, 1060 | `edge1050`, `edge1060` | 480 × 800 | 6.0 | DejaVu Sans Condensed |
+
+The code is the same everywhere, and nothing is switched on per model. Where a model lacks
+something, the field shows `--` for it: the Edge Explore 2 and 3 have no shifting data, so
+the drivetrain fields stay blank there. The newer API levels offer things the field does
+not use yet, such as the device's own power zones.
 
 ---
 
@@ -20,7 +38,7 @@ mock's layout plus a `LAP_SPD LAP_DIST` row.
 |---|---|
 | JDK 17+ | `brew install --cask temurin@17`. The Monkey C compiler is a Java program. |
 | Connect IQ SDK | Installed through the [SDK Manager](https://developer.garmin.com/connect-iq/sdk/). Currently built against **9.2.0**. |
-| `edge530` device files | Tick the device inside the SDK Manager — the SDK alone is not enough. |
+| Device files | Tick every model you build for inside the SDK Manager — the SDK alone is not enough. A store bundle (`-e`) needs all of them. |
 | A Garmin account | Only to sign in to the SDK Manager. No developer registration is needed for local work. |
 | Developer key | Already in this repo at `developer_key`. Generate a new one with the VS Code command *Monkey C: Generate a Developer Key* if it is ever lost. |
 | VS Code + *Monkey C* extension | Optional — the command line below is sufficient. |
@@ -247,7 +265,8 @@ through `Weather`, `SensorHistory` or `System.Stats` therefore goes through a `h
 - **Heart rate zones are read from the device profile** via
   `UserProfile.getHeartRateZones()` — these are the user's real Garmin zones.
 - **Power zones cannot be read on this device.** `UserProfile.getPowerZones()` requires
-  API level 5.2.2 and the Edge 530 caps out at 3.3. Power zones are therefore derived from
+  API level 5.2.2 and the Edge 530 caps out at 3.3. The newer Edges do have it, but the
+  field uses one rule on every model, so power zones are derived from
   an **FTP app setting** (default 200 W) using the standard Coggan boundaries
   55 / 75 / 90 / 105 / 120 / 150 % of FTP. Set your FTP in Garmin Connect Mobile or the
   simulator's settings editor, or the tints will be wrong.
@@ -369,9 +388,9 @@ things to find in the simulator's menus:
 - the **application settings editor**, which lets you change `ftp` and `layout` without
   rebuilding.
 
-## Installing on the Edge 530
+## Installing on an Edge
 
-1. Build with `-r`.
+1. Build with `-r` for your model: `CIQ_DEVICE=edge1040 ./build.sh --release`.
 2. Connect the Edge over USB; it mounts as a `GARMIN` volume.
 3. Copy `bin/ZebraTiles.prg` into `GARMIN/Apps/` on the device.
 4. Eject, disconnect, and let the Edge restart.
@@ -386,12 +405,18 @@ that the `.prg` is signed with some developer key, not with a registered one.
 ## Known limitations
 
 - A data field is redrawn at 1 Hz, and only while its page is on screen. No animation.
-- Data fields receive no button input, and the Edge 530 has no touchscreen, so the layout
-  cannot be changed from the device during a ride.
+- Data fields receive no button or touch input, so the layout cannot be changed from the
+  device during a ride.
 - Cadence is drawn on a white background. The design mock shows it green; per the current
   rule only power and heart rate are zone-tinted. Adding a cadence band is a one-line
   change in `Fields.zoneKind()`.
-- Font sizing is tuned to the Edge 530's actual metrics, measured in the simulator with
-  `dc.getFontHeight()`: `XTINY 13, TINY 20, SMALL 22, MEDIUM 26, LARGE 41, NUMBER_MILD 36,
-  NUMBER_MEDIUM 42, NUMBER_HOT 56, NUMBER_THAI_HOT 70`. `STATUS_H` and `HEADER_H` are both
-  22, exactly `LABEL_FONT`'s height. Porting to another device means re-measuring these.
+- Font sizes are not hard-coded: the field asks the device for each font's height, and the
+  header and status bands are exactly `LABEL_FONT`'s height — 22 px on the Edge 530, 17 on
+  the 540, 33 on the 1050. The per-model ladders, measured in the simulator with
+  `dc.getFontHeight()`, are in the layout builder's `DEVICES` table.
+- `CAP_RATIO_NUMBER` and `CAP_RATIO_TEXT` were calibrated from Edge 530 screenshots only.
+  The 540 and later set text in DejaVu Sans and numbers in Garmin's Roboto Bold, whose
+  glyphs sit differently in their boxes, so text there may be a pixel or two off centre
+  until someone calibrates against a screenshot from that model. The pixel constants
+  `PAD`, `LABEL_GAP` and `HEADERLESS_VALUE_LIFT` are not scaled for the larger screens
+  either.

@@ -129,8 +129,9 @@ class ZebraTilesView extends WatchUi.DataField {
             }
         }
         var tileRows = mRows.size() - statusRows;
+        var labelH = dc.getFontHeight(Config.LABEL_FONT);
 
-        var statusH = (h < 120) ? 16 : Config.STATUS_H;
+        var statusH = (h < 120) ? 16 : labelH;
         if (statusRows * statusH > h / 2) {
             statusH = (h / 2) / (statusRows > 0 ? statusRows : 1);
         }
@@ -148,22 +149,23 @@ class ZebraTilesView extends WatchUi.DataField {
             if (row.isStatus) {
                 drawStatusRow(dc, row, y, w, rowH);
             } else {
-                drawTileRow(dc, row, y, w, rowH);
+                drawTileRow(dc, row, y, w, rowH, labelH);
             }
         }
     }
 
-    hidden function drawTileRow(dc as Dc, row as Row, y as Number, w as Number, h as Number) as Void {
+    hidden function drawTileRow(dc as Dc, row as Row, y as Number, w as Number, h as Number, labelH as Number) as Void {
         // Tiles butt up against each other: no vertical rule inside a row.
         var n = row.cells.size();
         for (var i = 0; i < n; i++) {
             var left = (i * w) / n;
             var right = ((i + 1) * w) / n;
-            drawTile(dc, row.cells[i], left, y, right - left, h);
+            drawTile(dc, row.cells[i], left, y, right - left, h, labelH);
         }
     }
 
-    hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number) as Void {
+    //! labelH is LABEL_FONT's height, the header band of a tile tall enough for one.
+    hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number, labelH as Number) as Void {
         if (Fields.isGraphic(cell.code)) {
             dc.setColor(Config.VALUE_BG, Config.VALUE_BG);
             dc.fillRectangle(x, y, w, h);
@@ -175,7 +177,9 @@ class ZebraTilesView extends WatchUi.DataField {
             return;
         }
 
-        var headerH = (h < 56) ? h / 3 : Config.HEADER_H;
+        // A tile too short to leave its value 1.5 bands below the header gives the
+        // header a third of itself instead.
+        var headerH = (h * 2 < labelH * 5) ? h / 3 : labelH;
         var valueH = h - headerH;
 
         var kind = Fields.zoneKind(cell.code);
