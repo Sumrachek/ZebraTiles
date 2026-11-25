@@ -25,6 +25,13 @@ class ZebraTilesView extends WatchUi.DataField {
         Graphics.FONT_XTINY
     ] as Array<FontDefinition>;
 
+    // One header font for the whole screen, picked by the tightest tile so that
+    // no header is drawn bigger than its neighbours. Worked out again when the
+    // layout or the field's size changes.
+    hidden var mHeaderFont as FontDefinition? = null;
+    hidden var mHeaderFontW as Number = -1;
+    hidden var mHeaderFontH as Number = -1;
+
     hidden var mTextFonts as Array<FontDefinition> = [
         Graphics.FONT_LARGE,
         Graphics.FONT_MEDIUM,
@@ -56,6 +63,7 @@ class ZebraTilesView extends WatchUi.DataField {
             text = Config.DEFAULT_LAYOUT;
         }
         mRows = Spec.parse(text as String);
+        mHeaderFont = null;
     }
 
     //! The drivetrain, smallest first, from a setting such as "11 12 13 15 17".
@@ -154,6 +162,18 @@ class ZebraTilesView extends WatchUi.DataField {
         var tileBand = h - (statusH * statusRows);
         var tileH = (tileRows > 0) ? tileBand.toFloat() / tileRows : 0.0;
 
+        // Tile rows differ by at most a pixel of rounding; the header band is
+        // worked out once from the shorter of them so every header matches.
+        // A tile too short to leave its value 1.5 bands below the header gives
+        // the header a third of itself instead.
+        var rowFloor = tileH.toNumber();
+        var headerH = (rowFloor * 2 < labelH * 5) ? rowFloor / 3 : labelH;
+        if (mHeaderFont == null || mHeaderFontW != w || mHeaderFontH != h) {
+            mHeaderFont = headerFontFor(dc, w, headerH);
+            mHeaderFontW = w;
+            mHeaderFontH = h;
+        }
+
         var edge = 0.0;
         for (var i = 0; i < mRows.size(); i++) {
             var row = mRows[i];
@@ -165,23 +185,23 @@ class ZebraTilesView extends WatchUi.DataField {
             if (row.isStatus) {
                 drawStatusRow(dc, row, y, w, rowH);
             } else {
-                drawTileRow(dc, row, y, w, rowH, labelH);
+                drawTileRow(dc, row, y, w, rowH, headerH);
             }
         }
     }
 
-    hidden function drawTileRow(dc as Dc, row as Row, y as Number, w as Number, h as Number, labelH as Number) as Void {
+    hidden function drawTileRow(dc as Dc, row as Row, y as Number, w as Number, h as Number, headerH as Number) as Void {
         // Tiles butt up against each other: no vertical rule inside a row.
         var n = row.cells.size();
         for (var i = 0; i < n; i++) {
             var left = (i * w) / n;
             var right = ((i + 1) * w) / n;
-            drawTile(dc, row.cells[i], left, y, right - left, h, labelH);
+            drawTile(dc, row.cells[i], left, y, right - left, h, headerH);
         }
     }
 
-    //! labelH is LABEL_FONT's height, the header band of a tile tall enough for one.
-    hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number, labelH as Number) as Void {
+    //! headerH is the header band, the same for every tile on the screen.
+    hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number, headerH as Number) as Void {
         if (Fields.isGraphic(cell.code)) {
             dc.setColor(Config.VALUE_BG, Config.VALUE_BG);
             dc.fillRectangle(x, y, w, h);
@@ -193,9 +213,6 @@ class ZebraTilesView extends WatchUi.DataField {
             return;
         }
 
-        // A tile too short to leave its value 1.5 bands below the header gives the
-        // header a third of itself instead.
-        var headerH = (h * 2 < labelH * 5) ? h / 3 : labelH;
         var valueH = h - headerH;
 
         var kind = Fields.zoneKind(cell.code);
@@ -489,26 +506,64 @@ class ZebraTilesView extends WatchUi.DataField {
         }
     }
 
-    //! Label, and for zoned tiles the zone badge, centred together as one group.
-    hidden function drawHeader(dc as Dc, label as String, badge as String?, x as Number, y as Number, w as Number, h as Number) as Void {
-        var gap = (badge != null) ? Config.LABEL_GAP : 0;
-        var avail = w - (2 * Config.PAD);
-
-        // Largest chrome font whose label-plus-badge group still fits the tile.
-        var font = mLabelFonts[mLabelFonts.size() - 1];
-        var labelW = 0;
-        var badgeW = 0;
-        for (var i = 0; i < mLabelFonts.size(); i++) {
-            var candidate = mLabelFonts[i];
-            var lw = dc.getTextWidthInPixels(label, candidate);
-            var bw = (badge != null) ? dc.getTextWidthInPixels(badge, candidate) : 0;
-            font = candidate;
-            labelW = lw;
-            badgeW = bw;
-            if (dc.getFontHeight(candidate) <= h && lw + gap + bw <= avail) {
-                break;
+    //! The largest chrome font in which every tile's header fits its tile.
+    //!
+    //! Each tile picking its own font let a long label in a narrow tile drop to a
+    //! smaller size than the rest of the screen. Zoned tiles reserve room for the
+    //! widest badge they could show, so the font does not change mid-ride as the
+    //! zone or the sensor comes and goes.
+    hidden function headerFontFor(dc as Dc, w as Number, headerH as Number) as FontDefinition {
+        var last = mLabelFonts.size() - 1;
+        for (var f = 0; f < last; f++) {
+            var font = mLabelFonts[f];
+            if (dc.getFontHeight(font) <= headerH && headersFit(dc, font, w)) {
+                return font;
             }
         }
+        return mLabelFonts[last];
+    }
+
+    hidden function headersFit(dc as Dc, font as FontDefinition, w as Number) as Boolean {
+        var badgeW = 0;
+        for (var z = 1; z <= 9; z++) {
+            var bw = dc.getTextWidthInPixels("z" + z.format("%d"), font);
+            if (bw > badgeW) {
+                badgeW = bw;
+            }
+        }
+
+        for (var r = 0; r < mRows.size(); r++) {
+            var row = mRows[r];
+            if (row.isStatus) {
+                continue;
+            }
+            var n = row.cells.size();
+            for (var i = 0; i < n; i++) {
+                var cell = row.cells[i];
+                if (Fields.isGraphic(cell.code)) {
+                    continue;
+                }
+                var cellW = ((i + 1) * w) / n - (i * w) / n;
+                var need = dc.getTextWidthInPixels(Fields.labelFor(cell), font);
+                var kind = Fields.zoneKind(cell.code);
+                if (kind != Fields.Z_NONE && kind != Fields.Z_CAD) {
+                    need += Config.LABEL_GAP + badgeW;
+                }
+                if (need > cellW - (2 * Config.PAD)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    //! Label, and for zoned tiles the zone badge, centred together as one group,
+    //! in the screen-wide header font.
+    hidden function drawHeader(dc as Dc, label as String, badge as String?, x as Number, y as Number, w as Number, h as Number) as Void {
+        var font = (mHeaderFont != null) ? mHeaderFont as FontDefinition : Config.LABEL_FONT;
+        var gap = (badge != null) ? Config.LABEL_GAP : 0;
+        var labelW = dc.getTextWidthInPixels(label, font);
+        var badgeW = (badge != null) ? dc.getTextWidthInPixels(badge, font) : 0;
 
         var start = x + ((w - (labelW + gap + badgeW)) / 2);
         if (start < x + Config.PAD) {
