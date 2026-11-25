@@ -8,11 +8,11 @@
     <setting propertyKey="@Properties.cadenceMax" title="@Strings.SettingCadenceMax" prompt="@Strings.SettingCadencePrompt">
         <settingConfig type="numeric" min="30" max="150" />
     </setting>
-    <setting propertyKey="@Properties.headerBg" title="@Strings.SettingHeaderBg" prompt="@Strings.SettingColorPrompt">
-        <settingConfig type="alphaNumeric" maxLength="7" />
+    <setting propertyKey="@Properties.chainrings" title="@Strings.SettingChainrings" prompt="@Strings.SettingTeethPrompt">
+        <settingConfig type="alphaNumeric" maxLength="20" />
     </setting>
-    <setting propertyKey="@Properties.headerFg" title="@Strings.SettingHeaderFg" prompt="@Strings.SettingColorPrompt">
-        <settingConfig type="alphaNumeric" maxLength="7" />
+    <setting propertyKey="@Properties.cassette" title="@Strings.SettingCassette" prompt="@Strings.SettingTeethPrompt">
+        <settingConfig type="alphaNumeric" maxLength="60" />
     </setting>
     <setting propertyKey="@Properties.layout" title="@Strings.SettingLayout" prompt="@Strings.SettingLayoutPrompt">
         <settingConfig type="alphaNumeric" maxLength="160" />

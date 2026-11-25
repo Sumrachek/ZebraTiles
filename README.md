@@ -113,7 +113,7 @@ source/
   ZebraTilesView.mc       all drawing: rows, tiles, headers, status strip, font fitting
   ZebraTilesApp.mc        app entry point, reloads settings on change
 resources/
-  settings/properties.xml defaults for the `ftp`, cadence, header colour and layout settings
+  settings/properties.xml defaults for the `ftp`, cadence, drivetrain and layout settings
   settings/settings.xml   how those properties appear in Garmin Connect Mobile
   strings/strings.xml     app name and setting labels
   drawables/              launcher icon
@@ -171,7 +171,7 @@ worth knowing before changing it. A drivetrain broadcasts only the engaged sproc
 count and the number of positions, never the whole cassette, so the ramp is evenly stepped
 and not true to any real cassette — and that tooth count is an optional field, which many
 groupsets send as zero, leaving the rear half of the gear unreadable. Both are cured by
-listing the drivetrain in `Config.CASSETTE_TEETH` and `CHAINRING_TEETH`: the teeth then come
+listing the drivetrain in the `chainrings` and `cassette` settings: the teeth then come
 from there when the air does not carry them, the bar heights follow the real spread, and the
 list length sets how many bars are drawn. And Garmin documents the derailleur index only as "1 to
 max", never saying which end holds the small sprocket, so the drawing fixes the shape —
@@ -274,11 +274,8 @@ through `Weather`, `SensorHistory` or `System.Stats` therefore goes through a `h
 Palettes live in `Config.mc`: 5 heart-rate zones and 7 power zones, grey → blue → green →
 yellow → orange → red.
 
-The header strip's own two colours — background and label text — are app settings, typed
-as `RRGGBB` hex (a leading `#` is accepted). Connect IQ settings have no colour type, only
-lists and text, and a list would have boxed you into whatever swatches were picked here.
-`Config.HEADER_BG` and `Config.HEADER_FG` are the defaults, used whenever the setting is
-empty or will not parse.
+The header strip's own two colours — background and label text — are `Config.HEADER_BG`
+and `Config.HEADER_FG`. They are not app settings.
 
 **Setting `HEADER_BG` to `Config.HEADER_BG_NONE` switches the header off entirely.** The
 zone fill then runs the full height of the tile with the label riding on top of it, and
@@ -295,10 +292,8 @@ that out.
 
 The zone badge follows suit automatically: with no strip beneath it, it sits on the same
 surface as the value, so it switches from `ZONE_FG` to `VALUE_FG`. `HEADER_FG` does not —
-it stays whatever you set, so a light grey tuned for a dark strip will nearly vanish
+it stays whatever `Config` says, so a light grey tuned for a dark strip will nearly vanish
 against the zone colour. Expect to darken it in this mode.
-This mode is reachable only from `Config`: the colour setting parses six hex digits, which
-cannot express the sentinel.
 
 **Zone edges announce themselves.** As a value drifts towards the edge of its zone, a
 stripe of the neighbouring zone's colour creeps in from that side of the tile — right for

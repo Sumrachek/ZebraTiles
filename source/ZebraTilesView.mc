@@ -8,8 +8,8 @@ class ZebraTilesView extends WatchUi.DataField {
 
     hidden var mRows as Array<Row>;
     hidden var mMetrics as Metrics;
-    hidden var mHeaderBg as Number = Config.HEADER_BG;
-    hidden var mHeaderFg as Number = Config.HEADER_FG;
+    hidden var mRingTeeth as Array<Number> = [] as Array<Number>;
+    hidden var mCogTeeth as Array<Number> = [] as Array<Number>;
 
     // Ordered widest-first so the first fit is the biggest that fits.
     hidden var mNumberFonts as Array<FontDefinition> = [
@@ -43,8 +43,8 @@ class ZebraTilesView extends WatchUi.DataField {
     //! Re-read the app settings. Called on start and whenever they change.
     function reload() as Void {
         Zones.reload();
-        mHeaderBg = colorSetting("headerBg", Config.HEADER_BG);
-        mHeaderFg = colorSetting("headerFg", Config.HEADER_FG);
+        mRingTeeth = teethSetting("chainrings", Config.MAX_CHAINRINGS);
+        mCogTeeth = teethSetting("cassette", Config.MAX_SPROCKETS);
 
         var text = null;
         try {
@@ -58,10 +58,22 @@ class ZebraTilesView extends WatchUi.DataField {
         mRows = Spec.parse(text as String);
     }
 
-    //! Colours arrive as hex text - "2B2B2B", or "#2B2B2B" - so they can be typed
-    //! into the phone app, which offers no colour picker. Anything unparseable
-    //! falls back to the built-in value rather than painting a surprise colour.
-    hidden function colorSetting(key as String, fallback as Number) as Number {
+    //! The drivetrain, smallest first, from a setting such as "11 12 13 15 17".
+    //!
+    //! Worth filling in for two reasons. Many groupsets leave the sprocket's tooth
+    //! count out of the ANT+ shifting message - it is an optional field - and
+    //! broadcast zero for it, so the rear half of the gear cannot be read off the
+    //! air. And knowing every sprocket turns the bar ramp from an even staircase
+    //! into the real profile of the cassette. A given list also sets how many bars
+    //! are drawn, in place of the count the derailleur reports.
+    //!
+    //! Spaces and commas both separate, and the order does not matter. A dash is
+    //! not a separator, so a range such as "11-34" is rejected rather than read as
+    //! a two-sprocket cassette. One bad entry, or more entries than the bars
+    //! allow, empties the whole list: a half-right drivetrain would put the
+    //! highlight on the wrong bar.
+    hidden function teethSetting(key as String, maxCount as Number) as Array<Number> {
+        var none = [] as Array<Number>;
         var raw = null;
         try {
             raw = Application.Properties.getValue(key);
@@ -69,38 +81,42 @@ class ZebraTilesView extends WatchUi.DataField {
             raw = null;
         }
         if (!(raw instanceof Lang.String)) {
-            return fallback;
+            return none;
         }
-        return parseColor(raw as String, fallback);
+
+        var parts = Spec.splitOn(raw as String, [' ', ',', ';', '\t'] as Array<Char>);
+        if (parts.size() > maxCount) {
+            return none;
+        }
+        var teeth = [] as Array<Number>;
+        for (var i = 0; i < parts.size(); i++) {
+            var n = wholeNumber(parts[i]);
+            if (n == null || n < 5 || n > 99) {
+                return none;
+            }
+            // Insertion sort: the lists are a dozen entries at most.
+            teeth.add(n as Number);
+            for (var j = teeth.size() - 1; j > 0 && teeth[j - 1] > teeth[j]; j--) {
+                var swap = teeth[j];
+                teeth[j] = teeth[j - 1];
+                teeth[j - 1] = swap;
+            }
+        }
+        return teeth;
     }
 
-    hidden function parseColor(input as String, fallback as Number) as Number {
-        var text = input;
-        if (text.length() == 7) {
-            var head = text.substring(0, 1);
-            var body = text.substring(1, 7);
-            if (head != null && body != null && head.equals("#")) {
-                text = body;
-            }
+    //! toNumber() reads "12x" as 12, so every character is checked first.
+    hidden function wholeNumber(text as String) as Number? {
+        var chars = text.toCharArray();
+        if (chars.size() == 0 || chars.size() > 2) {
+            return null;
         }
-        if (text.length() != 6) {
-            return fallback;
-        }
-        // toNumberWithBase() parses a valid prefix and silently drops the rest,
-        // so "12345G" would come back as 0x12345 - check every digit first.
-        var chars = text.toUpper().toCharArray();
         for (var i = 0; i < chars.size(); i++) {
-            var c = chars[i];
-            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) {
-                return fallback;
+            if (chars[i] < '0' || chars[i] > '9') {
+                return null;
             }
         }
-
-        var value = text.toNumberWithBase(16);
-        if (value == null || value < 0 || value > 0xFFFFFF) {
-            return fallback;
-        }
-        return value;
+        return text.toNumber();
     }
 
     function compute(info as Activity.Info) as Void {
@@ -191,7 +207,7 @@ class ZebraTilesView extends WatchUi.DataField {
         }
 
         if (headerIsPainted()) {
-            dc.setColor(mHeaderBg, mHeaderBg);
+            dc.setColor(Config.HEADER_BG, Config.HEADER_BG);
             dc.fillRectangle(x, y, w, headerH);
             dc.setColor(fill, fill);
             dc.fillRectangle(x, y + headerH, w, valueH);
@@ -228,26 +244,26 @@ class ZebraTilesView extends WatchUi.DataField {
     //! That covers both Graphics.COLOR_TRANSPARENT, which is -1, and the
     //! 0xFF000000 spelling, since Monkey C colours carry no alpha channel.
     hidden function headerIsPainted() as Boolean {
-        return mHeaderBg >= 0 && mHeaderBg <= 0xFFFFFF;
+        return Config.HEADER_BG >= 0 && Config.HEADER_BG <= 0xFFFFFF;
     }
 
 
     //! Chainrings on the left, sprockets on the right, both as a ramp of bars with
     //! the engaged one picked out, and the ratio written across the top.
     //!
-    //! The ramps are schematic: the drivetrain broadcasts the engaged sprocket's
-    //! teeth and the number of positions, never the size of every sprocket, so the
-    //! steps are even. Chainrings descend to the right and sprockets climb, both
+    //! Without the chainring and cassette settings the ramps are schematic: the
+    //! drivetrain broadcasts the engaged sprocket's teeth and the number of
+    //! positions, never the size of every sprocket, so the steps are even. Chainrings descend to the right and sprockets climb, both
     //! fixed whichever way the indices happen to run, so the shape of the picture
     //! never changes and only the highlight moves.
     hidden function drawGearMap(dc as Dc, x as Number, y as Number, w as Number, h as Number) as Void {
         var m = mMetrics;
-        var ringTeeth = Config.CHAINRING_TEETH;
-        var cogTeeth = Config.CASSETTE_TEETH;
+        var ringTeeth = mRingTeeth;
+        var cogTeeth = mCogTeeth;
         var rings = (ringTeeth.size() > 0)
-            ? ringTeeth.size() : count(m.frontMax, Config.CHAINRINGS_FALLBACK, 1, 3);
+            ? ringTeeth.size() : count(m.frontMax, Config.CHAINRINGS_FALLBACK, 1, Config.MAX_CHAINRINGS);
         var cogs = (cogTeeth.size() > 0)
-            ? cogTeeth.size() : count(m.rearMax, Config.SPROCKETS_FALLBACK, 5, 14);
+            ? cogTeeth.size() : count(m.rearMax, Config.SPROCKETS_FALLBACK, 5, Config.MAX_SPROCKETS);
 
         var pad = Config.PAD;
         var innerW = w - (2 * pad);
@@ -316,7 +332,7 @@ class ZebraTilesView extends WatchUi.DataField {
     }
 
     //! The engaged gear as teeth. Prefers what the drivetrain broadcasts, and
-    //! falls back to the configured list - which is the only way to get the rear
+    //! falls back to the lists from the settings - which is the only way to get the rear
     //! number on a groupset that broadcasts zero for it.
     hidden function gearText(m as Metrics, ringTeeth as Array<Number>, cogTeeth as Array<Number>,
                              front as Number, rear as Number) as String {
@@ -500,7 +516,7 @@ class ZebraTilesView extends WatchUi.DataField {
         }
         var mid = y + (h / 2);
 
-        dc.setColor(mHeaderFg, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Config.HEADER_FG, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, start, mid, font, label, Graphics.TEXT_JUSTIFY_LEFT);
 
         if (badge != null) {

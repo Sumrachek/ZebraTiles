@@ -179,9 +179,12 @@ tint, and it takes the full height of its row.
 
 The sprocket's tooth count is an optional field in the ANT+ shifting message and plenty of
 groupsets broadcast zero for it, in which case the rear half of the gear cannot be read off
-the air at all. Listing your cassette in `Config.CASSETTE_TEETH` fixes that, and turns the
-bar ramp from an even staircase into the real profile of your cassette. `CHAINRING_TEETH`
-does the same for the front, which most groupsets do report correctly.
+the air at all. Listing your cassette in the **Cassette, teeth** setting fixes that, and turns
+the bar ramp from an even staircase into the real profile of your cassette. **Chainrings,
+teeth** does the same for the front, which most groupsets do report correctly. Both take
+tooth counts separated by spaces, e.g. `34 50` and `11 12 13 14 15 17 19 21 24 28`, in any
+order. A list also sets how many bars are drawn. A list that does not parse, or a range
+such as `11-34`, counts as empty.
 
 ## Weather
 

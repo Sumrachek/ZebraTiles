@@ -53,7 +53,7 @@ GOOD TO KNOW
 SETTINGS (in Garmin Connect)
 - FTP: the basis for power zones.
 - Cadence target, low and high.
-- Header background and text colour: hex, e.g. 2B2B2B.
+- Chainrings and cassette, teeth: e.g. 34 50 and 11 12 13 14 15 17 19 21 24 28. Optional; GEAR_MAP uses them to draw your real cassette and to show the rear gear on groupsets that do not broadcast it.
 - Layout: see above.
 
 Layout builder: https://sumrachek.github.io/ZebraTiles/
@@ -68,6 +68,10 @@ More Edge models. ZebraTiles now runs on the Edge 530, 540 / 540 Solar, 550, 830
 - Dew point now shows on the models that provide it (the 540, 840, 1040 and newer).
 - On the Edge Explore 2 and 3 the drivetrain fields stay blank: those devices do not pass shifting data to apps.
 - The layout builder has a device picker, so the preview matches your Edge.
+
+New settings: chainrings and cassette, as tooth counts.
+- GEAR_MAP draws your real cassette instead of an even staircase.
+- The rear gear shows even on groupsets that do not broadcast the sprocket size.
 ```
 
 ## What's new (1.0.0)

@@ -39,7 +39,8 @@ module Config {
     //! on the right, the engaged one picked out.
     //!
     //! Only the engaged sprocket's tooth count is broadcast, never the whole
-    //! cassette, so the steps are an even ramp rather than real ratios. And
+    //! cassette, so unless the chainring and cassette settings are filled in the
+    //! steps are an even ramp rather than real ratios. And
     //! Garmin documents the index as "1 to max" without saying which end is the
     //! small sprocket, so the ramp always climbs to the right and these flags
     //! decide where an index lands on it. If the highlight moves the wrong way on
@@ -48,18 +49,11 @@ module Config {
     const GEAR_HILITE = 0x1A6BFF;
     const FRONT_INDEX_1_IS_SMALLEST = true;
     const REAR_INDEX_1_IS_SMALLEST = false;
-    //! Your actual drivetrain, smallest first. Optional, and empty by default.
-    //!
-    //! Worth filling in for two reasons. Many groupsets leave the sprocket's tooth
-    //! count out of the ANT+ shifting message - it is an optional field - and
-    //! broadcast zero for it, so the rear half of the gear cannot be read off the
-    //! air. And knowing every sprocket turns the bar ramp from an even staircase
-    //! into the real profile of your cassette.
-    //!
-    //! When a list is given it also sets how many bars are drawn, in place of the
-    //! count the derailleur reports.
-    const CHAINRING_TEETH = [34, 52];   //!< e.g. [36, 52]
-    const CASSETTE_TEETH = [11, 12, 13, 14, 15, 17, 19, 21, 24, 27, 30, 34];    //!< e.g. [11, 12, 13, 14, 15, 17, 19, 21, 24, 28]
+    //! The real tooth counts come from the "chainrings" and "cassette" settings;
+    //! see ZebraTilesView.teethSetting(). These caps match the bar counts that
+    //! count() allows when the derailleur reports its own.
+    const MAX_CHAINRINGS = 3;
+    const MAX_SPROCKETS = 14;
 
     const CHAINRINGS_FALLBACK = 2;   //!< Drawn when the drivetrain has not said yet.
     const SPROCKETS_FALLBACK = 11;
