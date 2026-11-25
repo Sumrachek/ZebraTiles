@@ -72,6 +72,10 @@ More Edge models. ZebraTiles now runs on the Edge 530, 540 / 540 Solar, 550, 830
 New settings: chainrings and cassette, as tooth counts.
 - GEAR_MAP draws your real cassette instead of an even staircase.
 - The rear gear shows even on groupsets that do not broadcast the sprocket size.
+
+Night colours. When your Edge switches to night mode, by hand or automatically at sunset, ZebraTiles switches with it.
+- Plain tiles turn black with white figures, and the zone colours become darker, so the screen does not glare in the dark.
+- The layout builder has a Day / Night switch to preview both.
 ```
 
 ## What's new (1.0.0)

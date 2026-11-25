@@ -167,15 +167,16 @@ module Zones {
         return "z" + zone.format("%d");
     }
 
-    function colorFor(kind as Number, zone as Number?) as Number? {
+    //! night picks the dark palettes; see Config.HEADER_FG_NIGHT.
+    function colorFor(kind as Number, zone as Number?, night as Boolean) as Number? {
         if (zone == null) {
             return null;
         }
-        var palette = Config.PWR_COLORS;
+        var palette = night ? Config.PWR_COLORS_NIGHT : Config.PWR_COLORS;
         if (kind == Fields.Z_HR) {
-            palette = Config.HR_COLORS;
+            palette = night ? Config.HR_COLORS_NIGHT : Config.HR_COLORS;
         } else if (kind == Fields.Z_CAD) {
-            palette = Config.CAD_COLORS;
+            palette = night ? Config.CAD_COLORS_NIGHT : Config.CAD_COLORS;
         }
         var i = zone - 1;
         if (i < 0) { i = 0; }

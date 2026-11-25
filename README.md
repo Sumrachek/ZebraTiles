@@ -127,10 +127,13 @@ tools/
   crashlog.py             resolve the device's crash log into source lines
 ```
 
-The builder embeds every token, its header, which fields are zone-tinted and the zone
-palettes. All of that already exists in `Fields.mc` and `Config.mc`, so it is extracted
-rather than retyped: run `tools/build-layout-builder.py` after adding a field or changing a
-palette, or `--check` to be told whether it has drifted. It also reports a token that
+The builder embeds every token, its header, which fields are zone-tinted and every colour
+it paints the screen with, for the day and the night theme alike: zone palettes, plain
+tile, value, label, row rule and status strip. All of that already exists in `Fields.mc`
+and `Config.mc`, so it is extracted rather than retyped: run
+`tools/build-layout-builder.py` after adding a field or changing a colour, or `--check` to
+be told whether it has drifted. The grade wedge and the gear map are not drawn in the
+preview, so their colours are not in it. It also reports a token that
 appears in only one of `FIELDS.md` and `Fields.mc`, which otherwise goes unnoticed until
 the field renders as `?`.
 
@@ -276,6 +279,15 @@ yellow → orange → red.
 
 The header strip's own two colours — background and label text — are `Config.HEADER_BG`
 and `Config.HEADER_FG`. They are not app settings.
+
+**Night theme follows the device.** When the Edge switches to night colours — by hand, or
+by itself at sunset in the Auto colour mode — `DataField.getBackgroundColor()` turns black,
+and the field swaps every colour for its `_NIGHT` twin in `Config.mc`: black plain tiles
+with white figures, dark zone fills (`HR_COLORS_NIGHT`, `PWR_COLORS_NIGHT`,
+`CAD_COLORS_NIGHT`), a dark grade ramp and a dimmer gear map. The night colours are picked
+from the 64-colour grid of the MIP Edges (each channel `00`, `55`, `AA` or `FF`), so they
+look the same on every model. `HEADER_BG` has no twin: it decides whether there is a strip
+at all, and that does not change at sunset.
 
 **Setting `HEADER_BG` to `Config.HEADER_BG_NONE` switches the header off entirely.** The
 zone fill then runs the full height of the tile with the label riding on top of it, and

@@ -93,6 +93,27 @@ module Config {
     const VALUE_FG = 0x000000;
     const STATUS_FG = 0xFFFFFF;
 
+    //! Night theme. The field follows the device: when the Edge switches to night
+    //! colours - by hand, or on its own at sunset in the Auto colour mode -
+    //! getBackgroundColor() turns black and every colour below replaces its day
+    //! twin. The zone palettes and the grade ramp have night twins of their own,
+    //! next to the day ones further down.
+    //!
+    //! Dark fills with white figures rather than the day pastels, so a screen in
+    //! Z4 does not glare in the dark. The 530 and the other MIP Edges show 64
+    //! colours - each channel one of 00, 55, AA, FF - so these are picked from that
+    //! grid and look the same on every model. HEADER_BG has no twin: it decides
+    //! whether there is a strip at all, and that should not change at sunset.
+    const HEADER_FG_NIGHT = 0xAAAAAA;
+    const HEADER_RULE_NIGHT = 0x555555;
+    const ZONE_FG_NIGHT = 0xFFFFFF;
+    const VALUE_BG_NIGHT = 0x000000;
+    const VALUE_FG_NIGHT = 0xFFFFFF;
+    const STATUS_FG_NIGHT = 0xFFFFFF;
+    const GEAR_BAR_NIGHT = 0x555555;
+    const GEAR_HILITE_NIGHT = 0x55AAFF;
+    const GRADE_COLORS_NIGHT = [0x005500, 0x555500, 0xAA5500, 0xAA0000, 0x550055];
+
     //! One size for every piece of chrome: tile headers, zone badges and the
     //! status strip. Roboto Condensed 22 px on the Edge 530, which is what
     //! Garmin's own data field labels use. FONT_XTINY there is only 13 px.
@@ -144,6 +165,10 @@ module Config {
     // Garmin-style zone colors: Z1 white, then blue / green / yellow / orange / red.
     const HR_COLORS = [0xFFFFFF, 0x6ab5ff, 0x7bff98, 0xff975e, 0xff6a7c];
     const PWR_COLORS = [0xFFFFFF, 0x6ab5ff, 0x7bff98, 0xfffa6c, 0xff975e, 0xff6a7c, 0x9a78ff];
+    //! Night: Z1 black like the plain tiles, then dark blue / green / olive /
+    //! orange / red / violet, all of them dark enough for white figures.
+    const HR_COLORS_NIGHT = [0x000000, 0x0055AA, 0x005500, 0xAA5500, 0xAA0000];
+    const PWR_COLORS_NIGHT = [0x000000, 0x0055AA, 0x005500, 0x555500, 0xAA5500, 0xAA0000, 0x5500AA];
 
     // Derived metrics
     const PWR_WINDOW = 30;       //!< Longest rolling power window, seconds. Also the NP window.
@@ -161,6 +186,7 @@ module Config {
     //! So it gets a diverging palette - below the range, inside, above - rather
     //! than the intensity ramp the power and heart rate zones use.
     const CAD_COLORS = [0x6ab5ff, 0x7bff98, 0xff975e];
+    const CAD_COLORS_NIGHT = [0x0055AA, 0x005500, 0xAA5500];
     const DEFAULT_CAD_MIN = 85;
     const DEFAULT_CAD_MAX = 95;
 

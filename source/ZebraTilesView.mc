@@ -32,6 +32,20 @@ class ZebraTilesView extends WatchUi.DataField {
     hidden var mHeaderFontW as Number = -1;
     hidden var mHeaderFontH as Number = -1;
 
+    //! The colours of the current theme, day or night. Picked once per frame in
+    //! applyTheme() and read from here, so the draw calls - the gear map's above
+    //! all, which already sits at the edge of the stack - get no deeper.
+    hidden var mNight as Boolean = false;
+    hidden var mHeaderFg as Number = Config.HEADER_FG;
+    hidden var mHeaderRule as Number = Config.HEADER_RULE;
+    hidden var mZoneFg as Number = Config.ZONE_FG;
+    hidden var mValueBg as Number = Config.VALUE_BG;
+    hidden var mValueFg as Number = Config.VALUE_FG;
+    hidden var mStatusFg as Number = Config.STATUS_FG;
+    hidden var mGearBar as Number = Config.GEAR_BAR;
+    hidden var mGearHilite as Number = Config.GEAR_HILITE;
+    hidden var mGradeColors as Array<Number> = Config.GRADE_COLORS as Array<Number>;
+
     hidden var mTextFonts as Array<FontDefinition> = [
         Graphics.FONT_LARGE,
         Graphics.FONT_MEDIUM,
@@ -142,6 +156,7 @@ class ZebraTilesView extends WatchUi.DataField {
     function onUpdate(dc as Dc) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
+        applyTheme();
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -190,6 +205,26 @@ class ZebraTilesView extends WatchUi.DataField {
         }
     }
 
+    //! Follows the device's own day / night colours, the same switch Garmin's
+    //! data fields obey: getBackgroundColor() is black while the Edge shows night
+    //! colours, whether set by hand or by the Auto mode at sunset.
+    hidden function applyTheme() as Void {
+        var night = getBackgroundColor() == Graphics.COLOR_BLACK;
+        if (night == mNight) {
+            return;
+        }
+        mNight = night;
+        mHeaderFg = night ? Config.HEADER_FG_NIGHT : Config.HEADER_FG;
+        mHeaderRule = night ? Config.HEADER_RULE_NIGHT : Config.HEADER_RULE;
+        mZoneFg = night ? Config.ZONE_FG_NIGHT : Config.ZONE_FG;
+        mValueBg = night ? Config.VALUE_BG_NIGHT : Config.VALUE_BG;
+        mValueFg = night ? Config.VALUE_FG_NIGHT : Config.VALUE_FG;
+        mStatusFg = night ? Config.STATUS_FG_NIGHT : Config.STATUS_FG;
+        mGearBar = night ? Config.GEAR_BAR_NIGHT : Config.GEAR_BAR;
+        mGearHilite = night ? Config.GEAR_HILITE_NIGHT : Config.GEAR_HILITE;
+        mGradeColors = (night ? Config.GRADE_COLORS_NIGHT : Config.GRADE_COLORS) as Array<Number>;
+    }
+
     hidden function drawTileRow(dc as Dc, row as Row, y as Number, w as Number, h as Number, headerH as Number) as Void {
         // Tiles butt up against each other: no vertical rule inside a row.
         var n = row.cells.size();
@@ -203,10 +238,10 @@ class ZebraTilesView extends WatchUi.DataField {
     //! headerH is the header band, the same for every tile on the screen.
     hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number, headerH as Number) as Void {
         if (Fields.isGraphic(cell.code)) {
-            dc.setColor(Config.VALUE_BG, Config.VALUE_BG);
+            dc.setColor(mValueBg, mValueBg);
             dc.fillRectangle(x, y, w, h);
             if (!headerIsPainted() && y > 0) {
-                dc.setColor(Config.HEADER_RULE, Config.HEADER_RULE);
+                dc.setColor(mHeaderRule, mHeaderRule);
                 dc.fillRectangle(x, y, w, 1);
             }
             drawGearMap(dc, x, y, w, h);
@@ -218,9 +253,9 @@ class ZebraTilesView extends WatchUi.DataField {
         var kind = Fields.zoneKind(cell.code);
         var input = Fields.zoneInput(cell.code, mMetrics);
         var zone = Zones.of(kind, input);
-        var fill = Zones.colorFor(kind, zone);
+        var fill = Zones.colorFor(kind, zone, mNight);
         if (fill == null) {
-            fill = Config.VALUE_BG;
+            fill = mValueBg;
         }
 
         if (headerIsPainted()) {
@@ -237,7 +272,7 @@ class ZebraTilesView extends WatchUi.DataField {
             dc.fillRectangle(x, y, w, h);
             drawEdgeHints(dc, kind, input, zone, x, y, w, h);
             if (y > 0) {
-                dc.setColor(Config.HEADER_RULE, Config.HEADER_RULE);
+                dc.setColor(mHeaderRule, mHeaderRule);
                 dc.fillRectangle(x, y, w, 1);
             }
         }
@@ -253,7 +288,7 @@ class ZebraTilesView extends WatchUi.DataField {
         if (!headerIsPainted()) {
             middle -= Config.HEADERLESS_VALUE_LIFT;
         }
-        dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mValueFg, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, x + (w / 2), middle, font, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -326,7 +361,7 @@ class ZebraTilesView extends WatchUi.DataField {
         var textH = (innerH * (1.0 - (Config.GEAR_COG_MAX / 2.0))
             * Config.GEAR_TEXT_SCALE).toNumber();
         var font = pickFont(dc, text, cassetteW.toNumber(), textH);
-        dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mValueFg, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, cassetteLeft.toNumber(), y + pad + (textH / 2),
             font, text, Graphics.TEXT_JUSTIFY_LEFT);
     }
@@ -391,7 +426,7 @@ class ZebraTilesView extends WatchUi.DataField {
     //! The arrowhead is rows rather than Dc.fillPolygon, which is documented since
     //! API 1.0.0 and listed in the device's own API, yet throws when invoked here.
     hidden function drawBar(dc as Dc, left as Number, floorY as Number, width as Number, height as Number, on as Boolean, ceiling as Number) as Void {
-        var color = on ? Config.GEAR_HILITE : Config.GEAR_BAR;
+        var color = on ? mGearHilite : mGearBar;
         dc.setColor(color, color);
         var top = floorY - height;
         dc.fillRectangle(left, top, width, height);
@@ -455,7 +490,7 @@ class ZebraTilesView extends WatchUi.DataField {
 
     //! The ramp read off the size of the gradient, held at both ends.
     hidden function gradeColor(grade as Numeric) as Number {
-        var stops = Config.GRADE_COLORS;
+        var stops = mGradeColors;
         var last = stops.size() - 1;
         var size = (grade < 0) ? -grade : grade;
         if (size >= Config.GRADE_MAX_PCT) {
@@ -488,7 +523,7 @@ class ZebraTilesView extends WatchUi.DataField {
         var rising = Zones.upperHint(kind, value, zone);
         if (rising > 0) {
             var band = (widest * rising).toNumber();
-            var color = Zones.colorFor(kind, zone + 1);
+            var color = Zones.colorFor(kind, zone + 1, mNight);
             if (band > 0 && color != null) {
                 dc.setColor(color, color);
                 dc.fillRectangle(x + w - band, y, band, h);
@@ -498,7 +533,7 @@ class ZebraTilesView extends WatchUi.DataField {
         var falling = Zones.lowerHint(kind, value, zone);
         if (falling > 0) {
             var band = (widest * falling).toNumber();
-            var color = Zones.colorFor(kind, zone - 1);
+            var color = Zones.colorFor(kind, zone - 1, mNight);
             if (band > 0 && color != null) {
                 dc.setColor(color, color);
                 dc.fillRectangle(x, y, band, h);
@@ -571,13 +606,13 @@ class ZebraTilesView extends WatchUi.DataField {
         }
         var mid = y + (h / 2);
 
-        dc.setColor(Config.HEADER_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mHeaderFg, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, start, mid, font, label, Graphics.TEXT_JUSTIFY_LEFT);
 
         if (badge != null) {
             // Without a header strip the badge sits on the zone fill, the same
             // surface the value does, so it takes the value's colour to stay legible.
-            var badgeColor = headerIsPainted() ? Config.ZONE_FG : Config.VALUE_FG;
+            var badgeColor = headerIsPainted() ? mZoneFg : mValueFg;
             dc.setColor(badgeColor, Graphics.COLOR_TRANSPARENT);
             drawCentered(dc, start + labelW + gap, mid, font, badge,
                 Graphics.TEXT_JUSTIFY_LEFT);
@@ -588,7 +623,7 @@ class ZebraTilesView extends WatchUi.DataField {
     hidden function drawStatusRow(dc as Dc, row as Row, y as Number, w as Number, h as Number) as Void {
         var n = row.cells.size();
         var mid = y + (h / 2);
-        dc.setColor(Config.STATUS_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mStatusFg, Graphics.COLOR_TRANSPARENT);
 
         for (var i = 0; i < n; i++) {
             var left = (i * w) / n;
