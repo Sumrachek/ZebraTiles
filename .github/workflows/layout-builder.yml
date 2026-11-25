@@ -30,11 +30,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Upload and deploy run as two jobs, as in GitHub's own Pages starter workflow.
+  # With both in one job, deploy-pages sometimes asked for the artifact before
+  # the upload had registered and failed with 'No artifacts named "github-pages"
+  # were found' - twice in three runs, with the artifact plainly there. By the
+  # time a second job starts, the first job's artifacts are listed.
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
 
@@ -50,5 +52,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
