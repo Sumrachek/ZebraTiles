@@ -163,7 +163,8 @@ you are stopped, so they do not disappear at every traffic light.
 
 ## Drivetrain
 
-Needs electronic shifting that broadcasts over ANT.
+Needs electronic shifting that broadcasts over ANT. The Edge Explore 2 and 3 do not pass
+shifting data to Connect IQ at all, so on them these fields stay at `--`.
 
 | Token | Shows |
 |---|---|
@@ -178,9 +179,12 @@ tint, and it takes the full height of its row.
 
 The sprocket's tooth count is an optional field in the ANT+ shifting message and plenty of
 groupsets broadcast zero for it, in which case the rear half of the gear cannot be read off
-the air at all. Listing your cassette in `Config.CASSETTE_TEETH` fixes that, and turns the
-bar ramp from an even staircase into the real profile of your cassette. `CHAINRING_TEETH`
-does the same for the front, which most groupsets do report correctly.
+the air at all. Listing your cassette in the **Cassette, teeth** setting fixes that, and turns
+the bar ramp from an even staircase into the real profile of your cassette. **Chainrings,
+teeth** does the same for the front, which most groupsets do report correctly. Both take
+tooth counts separated by spaces, e.g. `34 50` and `11 12 13 14 15 17 19 21 24 28`, in any
+order. A list also sets how many bars are drawn. A list that does not parse, or a range
+such as `11-34`, counts as empty.
 
 ## Weather
 
@@ -202,8 +206,8 @@ Needs a phone connected; the figures are whatever was last downloaded.
 thermometer directly. Connect IQ will not run those more often than every five minutes, so
 the value lags, and it stays blank until the first one has fired after the field starts.
 
-`DEW_POINT` always shows `--` on the Edge 530: the value is part of the Connect IQ
-weather API but this device does not supply it.
+`DEW_POINT` always shows `--` on the Edge 530, 830 and 1030 family: the value is part of
+the Connect IQ weather API but those models do not supply it. The newer ones do.
 
 ## Device and environment
 
@@ -223,12 +227,13 @@ weather API but this device does not supply it.
 ## Not available
 
 Some things a native Garmin screen shows cannot be reached from a Connect IQ data field on
-this device, so there are no tokens for them:
+the Edge 530, so there are no tokens for them:
 
 - **Pedalling dynamics** — left/right balance, torque effectiveness, pedal smoothness.
 - **Di2 battery level**, and **radar** warnings about traffic behind you.
 - **Sunrise and sunset** times.
 - **Power zones from your Garmin profile.** Set your FTP in the app settings instead;
-  reading the device's own power zones needs a newer Edge.
+  reading the device's own power zones needs a newer Edge, and the field keeps to one rule
+  on every model.
 - **ClimbPro, training status, recovery time, stamina, Grit and Flow** — either absent from
   the API or exclusive to later Edge models.

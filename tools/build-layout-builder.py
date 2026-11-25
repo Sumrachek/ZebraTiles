@@ -2,7 +2,9 @@
 """Refresh the data the layout builder is built on, from the source of truth.
 
 tools/layout-builder.html carries a `const DATA = {...}` line holding every
-token, its tile header, whether it is zone-tinted and the zone palettes. Those
+token, its tile header, whether it is zone-tinted, and the colours of both
+themes - day and night: zone palettes, plain tile, value, label, row rule and
+status strip. Those
 all exist in the Monkey C source already, so retyping them into the page would
 guarantee drift. This reads them back out and rewrites that one line, leaving
 the page's markup, styles and script untouched.
@@ -10,7 +12,7 @@ the page's markup, styles and script untouched.
     ./tools/build-layout-builder.py            rewrite the page
     ./tools/build-layout-builder.py --check    report drift, change nothing
 
-Run it after adding a field or changing a palette. It also cross-checks the two
+Run it after adding a field or changing a colour. It also cross-checks the two
 places a token has to appear - FIELDS.md and Fields.mc - and complains when one
 of them is missing it, which is the mistake that is otherwise invisible until
 the field renders as `?` on the bike.
@@ -89,16 +91,60 @@ def read_fields_mc():
     return tok2code, code2label, kinds
 
 
-def read_palettes():
+def read_themes(problems):
+    """The colours the preview paints with, day and night, as CSS hex.
+
+    Every colour the page puts on the screen comes from here, so a change in
+    Config.mc that is not carried over shows up in --check rather than as a
+    preview that quietly disagrees with the bike.
+    """
     cfg = CONFIG_MC.read_text(encoding="utf-8")
 
+    def hexcss(value):
+        return "#%06x" % (int(value, 16) & 0xFFFFFF)
+
+    # \b and the "const" keep HEADER_FG from matching HEADER_FG_NIGHT and
+    # HR_COLORS from matching inside another name.
     def array(name):
-        found = re.search(name + r"\s*=\s*\[([^\]]+)\]", cfg)
+        found = re.search(r"\bconst " + name + r"\s*=\s*\[([^\]]+)\]", cfg)
         if found is None:
             sys.exit(f"could not find {name} in Config.mc")
-        return [v.strip() for v in found.group(1).split(",")]
+        return [hexcss(v.strip()) for v in found.group(1).split(",")]
 
-    return {"pwr": array("PWR_COLORS"), "hr": array("HR_COLORS"), "cad": array("CAD_COLORS")}
+    def scalar(name):
+        found = re.search(r"\bconst " + name + r"\s*=\s*(-?(?:0x[0-9A-Fa-f]+|\d+))\s*;", cfg)
+        if found is None:
+            sys.exit(f"could not find {name} in Config.mc")
+        return found.group(1)
+
+    # The preview draws the headerless look only: label on the fill, a hairline
+    # between rows, the badge in the value colour.
+    header_bg = int(scalar("HEADER_BG"), 0)
+    if 0 <= header_bg <= 0xFFFFFF:
+        problems.append("Config.HEADER_BG paints a header strip; the preview only draws "
+                        "the headerless look, so its headers will not match the bike")
+
+    def theme(suffix):
+        return {
+            "palette": {
+                "pwr": array("PWR_COLORS" + suffix),
+                "hr": array("HR_COLORS" + suffix),
+                "cad": array("CAD_COLORS" + suffix),
+            },
+            "valueBg": hexcss(scalar("VALUE_BG" + suffix)),
+            "valueFg": hexcss(scalar("VALUE_FG" + suffix)),
+            "label": hexcss(scalar("HEADER_FG" + suffix)),
+            "rule": hexcss(scalar("HEADER_RULE" + suffix)),
+            "status": hexcss(scalar("STATUS_FG" + suffix)),
+        }
+
+    themes = {"day": theme(""), "night": theme("_NIGHT")}
+    for kind, colours in themes["day"]["palette"].items():
+        night = themes["night"]["palette"][kind]
+        if len(night) != len(colours):
+            problems.append(f"{kind} palette has {len(colours)} day colours but "
+                            f"{len(night)} night ones; the zones will not line up")
+    return themes
 
 
 def read_groups(tok2code, code2label, kinds):
@@ -133,6 +179,7 @@ def main(argv):
     documented = [i["t"] for g in groups for i in g["items"]]
 
     problems = []
+    themes = read_themes(problems)
     for token in documented:
         if token not in tok2code:
             problems.append(f"{token} is in FIELDS.md but Fields.mc will not parse it")
@@ -143,7 +190,7 @@ def main(argv):
         if token not in SAMPLES:
             problems.append(f"{token} has no sample value; the preview will show --")
 
-    data = {"groups": groups, "palette": read_palettes()}
+    data = {"groups": groups, "themes": themes}
     line = "const DATA = " + json.dumps(data, ensure_ascii=False) + ";"
 
     page = PAGE.read_text(encoding="utf-8")

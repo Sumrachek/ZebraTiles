@@ -141,12 +141,17 @@ class Metrics {
         track = info.track;
         bearingFromStart = info.bearingFromStart;
 
-        frontGear = info.frontDerailleurIndex;
-        rearGear = info.rearDerailleurIndex;
-        frontTeeth = info.frontDerailleurSize;
-        rearTeeth = info.rearDerailleurSize;
-        frontMax = info.frontDerailleurMax;
-        rearMax = info.rearDerailleurMax;
+        // The Edge Explore 2 and 3 carry no shifting members at all, and touching
+        // a missing one is a crash rather than a null. There the gear fields
+        // simply stay at "--".
+        if (info has :frontDerailleurIndex) {
+            frontGear = info.frontDerailleurIndex;
+            rearGear = info.rearDerailleurIndex;
+            frontTeeth = info.frontDerailleurSize;
+            rearTeeth = info.rearDerailleurSize;
+            frontMax = info.frontDerailleurMax;
+            rearMax = info.rearDerailleurMax;
+        }
 
         timerMs = (info.timerTime != null) ? info.timerTime as Number : 0;
         elapsedMs = (info.elapsedTime != null) ? info.elapsedTime as Number : 0;

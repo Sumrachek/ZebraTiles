@@ -39,7 +39,8 @@ module Config {
     //! on the right, the engaged one picked out.
     //!
     //! Only the engaged sprocket's tooth count is broadcast, never the whole
-    //! cassette, so the steps are an even ramp rather than real ratios. And
+    //! cassette, so unless the chainring and cassette settings are filled in the
+    //! steps are an even ramp rather than real ratios. And
     //! Garmin documents the index as "1 to max" without saying which end is the
     //! small sprocket, so the ramp always climbs to the right and these flags
     //! decide where an index lands on it. If the highlight moves the wrong way on
@@ -48,18 +49,11 @@ module Config {
     const GEAR_HILITE = 0x1A6BFF;
     const FRONT_INDEX_1_IS_SMALLEST = true;
     const REAR_INDEX_1_IS_SMALLEST = false;
-    //! Your actual drivetrain, smallest first. Optional, and empty by default.
-    //!
-    //! Worth filling in for two reasons. Many groupsets leave the sprocket's tooth
-    //! count out of the ANT+ shifting message - it is an optional field - and
-    //! broadcast zero for it, so the rear half of the gear cannot be read off the
-    //! air. And knowing every sprocket turns the bar ramp from an even staircase
-    //! into the real profile of your cassette.
-    //!
-    //! When a list is given it also sets how many bars are drawn, in place of the
-    //! count the derailleur reports.
-    const CHAINRING_TEETH = [34, 52];   //!< e.g. [36, 52]
-    const CASSETTE_TEETH = [11, 12, 13, 14, 15, 17, 19, 21, 24, 27, 30, 34];    //!< e.g. [11, 12, 13, 14, 15, 17, 19, 21, 24, 28]
+    //! The real tooth counts come from the "chainrings" and "cassette" settings;
+    //! see ZebraTilesView.teethSetting(). These caps match the bar counts that
+    //! count() allows when the derailleur reports its own.
+    const MAX_CHAINRINGS = 3;
+    const MAX_SPROCKETS = 14;
 
     const CHAINRINGS_FALLBACK = 2;   //!< Drawn when the drivetrain has not said yet.
     const SPROCKETS_FALLBACK = 11;
@@ -99,9 +93,33 @@ module Config {
     const VALUE_FG = 0x000000;
     const STATUS_FG = 0xFFFFFF;
 
+    //! Night theme. The field follows the device: when the Edge switches to night
+    //! colours - by hand, or on its own at sunset in the Auto colour mode -
+    //! getBackgroundColor() turns black and every colour below replaces its day
+    //! twin. The zone palettes and the grade ramp have night twins of their own,
+    //! next to the day ones further down.
+    //!
+    //! Dark fills with white figures rather than the day pastels, so a screen in
+    //! Z4 does not glare in the dark. The 530 and the other MIP Edges show 64
+    //! colours - each channel one of 00, 55, AA, FF - so these are picked from that
+    //! grid and look the same on every model. HEADER_BG has no twin: it decides
+    //! whether there is a strip at all, and that should not change at sunset.
+    const HEADER_FG_NIGHT = 0xAAAAAA;
+    const HEADER_RULE_NIGHT = 0x555555;
+    const ZONE_FG_NIGHT = 0xFFFFFF;
+    const VALUE_BG_NIGHT = 0x000000;
+    const VALUE_FG_NIGHT = 0xFFFFFF;
+    const STATUS_FG_NIGHT = 0xFFFFFF;
+    const GEAR_BAR_NIGHT = 0x555555;
+    const GEAR_HILITE_NIGHT = 0x55AAFF;
+    const GRADE_COLORS_NIGHT = [0x005500, 0x555500, 0xAA5500, 0xAA0000, 0x550055];
+
     //! One size for every piece of chrome: tile headers, zone badges and the
     //! status strip. Roboto Condensed 22 px on the Edge 530, which is what
-    //! Garmin's own data field labels use. FONT_XTINY here is only 13 px.
+    //! Garmin's own data field labels use. FONT_XTINY there is only 13 px.
+    //! The header and status bands are exactly this font's height, read from the
+    //! device at draw time, so they follow it from 17 px on an Edge 540 to 33 px
+    //! on an Edge 1050.
     const LABEL_FONT = Graphics.FONT_SMALL;
 
     //! Height of the visible glyph block - capitals and digits, cap line to
@@ -140,15 +158,17 @@ module Config {
     const HINT_TRIGGER = 0.10;    //!< Starts this far into the zone, as a fraction of its span.
     const HINT_MAX_WIDTH = 0.20;  //!< Width at the threshold itself, as a fraction of the tile.
 
-    // Geometry. STATUS_H and HEADER_H are both exactly LABEL_FONT's height.
-    const STATUS_H = 22;
-    const HEADER_H = 22;
+    // Geometry. The header and status bands take LABEL_FONT's height; see there.
     const PAD = 3;
     const LABEL_GAP = 7;
 
     // Garmin-style zone colors: Z1 white, then blue / green / yellow / orange / red.
     const HR_COLORS = [0xFFFFFF, 0x6ab5ff, 0x7bff98, 0xff975e, 0xff6a7c];
     const PWR_COLORS = [0xFFFFFF, 0x6ab5ff, 0x7bff98, 0xfffa6c, 0xff975e, 0xff6a7c, 0x9a78ff];
+    //! Night: Z1 black like the plain tiles, then dark blue / green / olive /
+    //! orange / red / violet, all of them dark enough for white figures.
+    const HR_COLORS_NIGHT = [0x000000, 0x0055AA, 0x005500, 0xAA5500, 0xAA0000];
+    const PWR_COLORS_NIGHT = [0x000000, 0x0055AA, 0x005500, 0x555500, 0xAA5500, 0xAA0000, 0x5500AA];
 
     // Derived metrics
     const PWR_WINDOW = 30;       //!< Longest rolling power window, seconds. Also the NP window.
@@ -166,6 +186,7 @@ module Config {
     //! So it gets a diverging palette - below the range, inside, above - rather
     //! than the intensity ramp the power and heart rate zones use.
     const CAD_COLORS = [0x6ab5ff, 0x7bff98, 0xff975e];
+    const CAD_COLORS_NIGHT = [0x0055AA, 0x005500, 0xAA5500];
     const DEFAULT_CAD_MIN = 85;
     const DEFAULT_CAD_MAX = 95;
 

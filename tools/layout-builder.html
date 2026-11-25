@@ -80,23 +80,29 @@
 
   /* device */
   .device{display:flex;flex-direction:column;gap:12px;align-items:center;padding:14px}
-  .screen{width:calc(246*var(--u));height:calc(322*var(--u));background:#000;flex:none;
+  .screen{width:calc(var(--w)*var(--u));height:calc(var(--h)*var(--u));background:#000;flex:none;
           display:flex;flex-direction:column;font-family:"Roboto Condensed",sans-serif;
           border:calc(2*var(--u)) solid #222;border-radius:calc(4*var(--u))}
+  /* The tile colours are set on .screen by renderScreen() from DATA.themes,
+     which is read out of Config.mc - none of them is typed in here. */
   .srow{display:flex;position:relative}
   .stile{flex:1;position:relative;overflow:hidden}
-  .stile .rule{position:absolute;top:0;left:0;right:0;height:var(--u);background:#aaa}
-  .stile .lb{position:absolute;left:0;right:0;top:0;height:calc(22*var(--u));
-    display:flex;align-items:center;justify-content:center;gap:calc(7*var(--u));color:#444;line-height:1}
-  .stile .lb b{color:#000;font-weight:700}
+  .stile .rule{position:absolute;top:0;left:0;right:0;height:var(--u);background:var(--rule)}
+  .stile .lb{position:absolute;left:0;right:0;top:0;height:calc(var(--lh)*var(--u));
+    display:flex;align-items:center;justify-content:center;gap:calc(7*var(--u));color:var(--label);line-height:1}
+  .stile .lb b{color:var(--vfg);font-weight:700}
   .stile .vl{position:absolute;left:0;right:0;display:flex;align-items:center;justify-content:center;
-    color:#000;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
-  .sstatus{display:flex;align-items:center;justify-content:space-between;color:#fff;
+    color:var(--vfg);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .sstatus{display:flex;align-items:center;justify-content:space-between;color:var(--status);
     padding-inline:calc(3*var(--u));font-family:"Roboto Condensed",sans-serif}
   .zonebar{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap;justify-content:center}
   .zonebar button{width:26px;height:24px;border-radius:5px;border:1px solid var(--hair);cursor:pointer;
     font:inherit;font-size:11px;background:var(--panel);color:var(--ink)}
+  .zonebar button.wide{width:auto;padding-inline:8px}
   .zonebar button.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:600}
+  .devpick{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+  .devpick select{font:inherit;font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid var(--hair);
+    background:var(--panel);color:var(--ink)}
 
   /* output */
   .out{display:flex;flex-direction:column;gap:6px;padding:12px}
@@ -133,8 +139,9 @@
   <header>
     <h1>ZebraTiles Layout Builder</h1>
     <p class="sub">Drag fields from the palette into rows. The screen on the right is drawn at the
-      Edge 530's real geometry &mdash; 246&times;322, 22&nbsp;px label band, the same font ladder the
-      field picks from &mdash; and the config below it is what you paste into the Layout setting.</p>
+      chosen Edge's real geometry &mdash; its resolution, label band and the font ladder the field
+      picks from, measured on each model &mdash; and the config below it is what you paste into the
+      Layout setting. The layout text itself is the same on every model.</p>
   </header>
 
   <div class="cols">
@@ -163,12 +170,17 @@
       <div class="card">
         <h2>Screen</h2>
         <div class="device">
+          <label class="devpick">Device <select id="device"></select></label>
           <div class="screen" id="screen"></div>
           <div class="zonebar">
             <span>Zone</span>
             <span id="zoneBtns"></span>
             <span>&middot; scale</span>
             <span id="scaleBtns"></span>
+          </div>
+          <div class="zonebar">
+            <span>Theme</span>
+            <span id="themeBtns"></span>
           </div>
         </div>
       </div>
@@ -189,14 +201,46 @@
 </div>
 
 <script>
-const DATA = {"groups": [{"name": "Power", "items": [{"t": "PWR", "h": "PWR", "d": "Current power, W", "z": "pwr", "v": "212"}, {"t": "3S_PWR", "h": "3s PWR", "d": "Power averaged over the last 3 seconds, W", "z": "pwr", "v": "204"}, {"t": "5S_PWR", "h": "5s PWR", "d": "Power averaged over the last 5 seconds, W", "z": "pwr", "v": "201"}, {"t": "10S_PWR", "h": "10s PWR", "d": "Power averaged over the last 10 seconds, W", "z": "pwr", "v": "197"}, {"t": "30S_PWR", "h": "30s PWR", "d": "Power averaged over the last 30 seconds, W", "z": "pwr", "v": "193"}, {"t": "AVG_PWR", "h": "AVG PWR", "d": "Average power for the whole ride, W", "z": "", "v": "186"}, {"t": "MAX_PWR", "h": "MAX PWR", "d": "Highest power recorded this ride, W", "z": "", "v": "642"}, {"t": "LAP_PWR", "h": "LAP PWR", "d": "Average power for the current lap, W", "z": "", "v": "198"}, {"t": "LAST_LAP_PWR", "h": "LAST PWR", "d": "Average power for the previous lap, W", "z": "", "v": "205"}, {"t": "NP", "h": "NP", "d": "Normalized power for the ride, W", "z": "", "v": "201"}, {"t": "IF", "h": "IF", "d": "Intensity factor — normalized power divided by FTP", "z": "", "v": "1.01"}, {"t": "TSS", "h": "TSS", "d": "Training stress score accumulated this ride", "z": "", "v": "64"}, {"t": "PWR_PCT_FTP", "h": "% FTP", "d": "Current power as a percentage of FTP", "z": "pwr", "v": "102%"}, {"t": "W_KG", "h": "W/KG", "d": "Current power per kilogram, using the weight in your Garmin profile", "z": "pwr", "v": "2.9"}, {"t": "PWR_ZONE", "h": "PWR ZONE", "d": "Current power zone, 1 to 7", "z": "pwr", "v": "4"}, {"t": "KJ", "h": "KJ", "d": "Total work done this ride, kilojoules", "z": "", "v": "1240"}]}, {"name": "Heart rate", "items": [{"t": "HR", "h": "HR", "d": "Current heart rate, bpm", "z": "hr", "v": "148"}, {"t": "AVG_HR", "h": "AVG HR", "d": "Average heart rate for the whole ride, bpm", "z": "", "v": "142"}, {"t": "MAX_HR", "h": "MAX HR", "d": "Highest heart rate recorded this ride, bpm", "z": "", "v": "176"}, {"t": "LAP_HR", "h": "LAP HR", "d": "Average heart rate for the current lap, bpm", "z": "", "v": "145"}, {"t": "LAST_LAP_HR", "h": "LAST HR", "d": "Average heart rate for the previous lap, bpm", "z": "", "v": "139"}, {"t": "HR_PCT_MAX", "h": "% MAX HR", "d": "Current heart rate as a percentage of your maximum", "z": "hr", "v": "84%"}, {"t": "HR_PCT_RESERVE", "h": "% HRR", "d": "Current heart rate as a percentage of heart rate reserve", "z": "hr", "v": "71%"}, {"t": "HR_ZONE", "h": "HR ZONE", "d": "Current heart rate zone, 1 to 5", "z": "hr", "v": "2"}, {"t": "TIME_IN_ZONE", "h": "IN ZONE", "d": "Time spent in the current zone, restarting whenever the zone changes", "z": "hr", "v": "04:12"}]}, {"name": "Cadence", "items": [{"t": "CAD", "h": "CAD", "d": "Current cadence, rpm", "z": "cad", "v": "91"}, {"t": "AVG_CAD", "h": "AVG CAD", "d": "Average cadence for the whole ride, rpm", "z": "", "v": "87"}, {"t": "MAX_CAD", "h": "MAX CAD", "d": "Highest cadence recorded this ride, rpm", "z": "", "v": "118"}, {"t": "LAP_CAD", "h": "LAP CAD", "d": "Average cadence for the current lap, rpm", "z": "", "v": "89"}, {"t": "LAST_LAP_CAD", "h": "LAST CAD", "d": "Average cadence for the previous lap, rpm", "z": "", "v": "92"}]}, {"name": "Speed and distance", "items": [{"t": "SPD", "h": "SPD", "d": "Current speed, km/h", "z": "", "v": "31"}, {"t": "AVG_SPD", "h": "AVG SPD", "d": "Average speed for the whole ride, km/h", "z": "", "v": "28"}, {"t": "MAX_SPD", "h": "MAX SPD", "d": "Highest speed recorded this ride, km/h", "z": "", "v": "64"}, {"t": "LAP_SPD", "h": "LAP SPD", "d": "Average speed for the current lap, km/h", "z": "", "v": "29"}, {"t": "LAST_LAP_SPD", "h": "LAST SPD", "d": "Average speed for the previous lap, km/h", "z": "", "v": "30"}, {"t": "DIST", "h": "DIST", "d": "Distance covered this ride, km", "z": "", "v": "42.7"}, {"t": "LAP_DIST", "h": "LAP DIST", "d": "Distance covered in the current lap, km", "z": "", "v": "8.4"}, {"t": "LAST_LAP_DIST", "h": "LAST DIST", "d": "Distance covered in the previous lap, km", "z": "", "v": "9.1"}]}, {"name": "Time", "items": [{"t": "DAY_TIME_24", "h": "TIME", "d": "Time of day, 24-hour clock", "z": "", "v": "19:41"}, {"t": "DAY_TIME_12", "h": "TIME", "d": "Time of day, 12-hour clock", "z": "", "v": "7:41"}, {"t": "TIMER", "h": "TIMER", "d": "Riding time, with stops excluded by auto-pause", "z": "", "v": "1:24:07"}, {"t": "ELAPSED", "h": "ELAPSED", "d": "Total time since the ride started, stops included", "z": "", "v": "1:31:52"}, {"t": "STOPPED_TIME", "h": "STOPPED", "d": "Time spent stopped — elapsed time minus riding time", "z": "", "v": "07:45"}, {"t": "LAP_TIME", "h": "LAP TIME", "d": "Time on the current lap", "z": "", "v": "14:22"}, {"t": "LAST_LAP_TIME", "h": "LAST LAP", "d": "Time the previous lap took", "z": "", "v": "12:58"}, {"t": "LAP_NUMBER", "h": "LAP", "d": "Which lap you are on", "z": "", "v": "4"}]}, {"name": "Elevation", "items": [{"t": "ALT", "h": "ALT", "d": "Current altitude, m", "z": "", "v": "412"}, {"t": "ASCENT", "h": "ASCENT", "d": "Total climbing this ride, m", "z": "", "v": "684"}, {"t": "DESCENT", "h": "DESCENT", "d": "Total descending this ride, m", "z": "", "v": "611"}, {"t": "LAP_ASCENT", "h": "LAP ASC", "d": "Climbing on the current lap, m", "z": "", "v": "142"}, {"t": "LAP_DESCENT", "h": "LAP DESC", "d": "Descending on the current lap, m", "z": "", "v": "98"}, {"t": "GRD", "h": "GRD %", "d": "Current gradient, %", "z": "", "v": "-3"}, {"t": "VAM", "h": "VAM", "d": "Climb rate, metres per hour", "z": "", "v": "640"}]}, {"name": "Navigation", "items": [{"t": "DIST_TO_DEST", "h": "DIST LEFT", "d": "Distance still to go, km", "z": "", "v": "18.6"}, {"t": "TIME_TO_DEST", "h": "TIME LEFT", "d": "Estimated time still to go", "z": "", "v": "38:20"}, {"t": "ETA", "h": "ETA", "d": "Estimated time of arrival, clock time", "z": "", "v": "20:15"}, {"t": "ALT_AT_DEST", "h": "DEST ALT", "d": "Altitude at the destination, m", "z": "", "v": "96"}, {"t": "DIST_TO_NEXT", "h": "NEXT DIST", "d": "Distance to the next course point, km", "z": "", "v": "2.4"}, {"t": "ALT_AT_NEXT", "h": "NEXT ALT", "d": "Altitude at the next course point, m", "z": "", "v": "501"}, {"t": "NEXT_POINT", "h": "NEXT", "d": "Name of the next course point", "z": "", "v": "Col"}, {"t": "DEST_NAME", "h": "DEST", "d": "Name of the destination", "z": "", "v": "Home"}, {"t": "OFF_COURSE", "h": "OFF CRS", "d": "How far you are from the course, m", "z": "", "v": "12"}, {"t": "BEARING", "h": "BEARING", "d": "Direction to the destination, degrees", "z": "", "v": "142°"}, {"t": "HEADING", "h": "HEADING", "d": "Direction you are facing, degrees", "z": "", "v": "138°"}, {"t": "TRACK", "h": "TRACK", "d": "Direction you are travelling, from GPS, degrees", "z": "", "v": "140°"}, {"t": "BEARING_START", "h": "TO START", "d": "Direction back to where you started, degrees", "z": "", "v": "318°"}]}, {"name": "Drivetrain", "items": [{"t": "GEAR_FRONT", "h": "FRONT", "d": "Front chainring position", "z": "", "v": "2"}, {"t": "GEAR_REAR", "h": "REAR", "d": "Rear sprocket position", "z": "", "v": "7"}, {"t": "GEARS", "h": "GEARS", "d": "Both at once, as teeth if the groupset reports them, otherwise positions", "z": "", "v": "50/17"}, {"t": "GEAR_RATIO", "h": "RATIO", "d": "Front teeth divided by rear teeth", "z": "", "v": "2.94"}, {"t": "GEAR_MAP", "h": "", "d": "The drivetrain drawn out: chainrings, sprockets, the engaged one picked out", "z": "", "v": "52-15"}]}, {"name": "Weather", "items": [{"t": "WEATHER_TEMP", "h": "AIR TEMP", "d": "Air temperature from the forecast, °C", "z": "", "v": "16°C"}, {"t": "FEELS_LIKE", "h": "FEELS", "d": "Wind chill or heat index, °C", "z": "", "v": "14°C"}, {"t": "WIND_SPD", "h": "WIND", "d": "Wind speed, km/h", "z": "", "v": "12"}, {"t": "WIND_DIR", "h": "WIND DIR", "d": "Direction the wind blows from, degrees", "z": "", "v": "290°"}, {"t": "WIND_REL", "h": "WIND REL", "d": "Wind relative to your heading — `HEAD`, `TAIL` or `CROSS`", "z": "", "v": "HEAD"}, {"t": "HUMIDITY", "h": "HUMID", "d": "Relative humidity, %", "z": "", "v": "62%"}, {"t": "PRECIP_CHANCE", "h": "RAIN %", "d": "Chance of precipitation, %", "z": "", "v": "10%"}, {"t": "DEW_POINT", "h": "DEW PT", "d": "Dew point, °C", "z": "", "v": "--"}, {"t": "UV_INDEX", "h": "UV", "d": "UV index", "z": "", "v": "3"}]}, {"name": "Device and environment", "items": [{"t": "TEMP_C", "h": "TEMP", "d": "Temperature from the Edge's own thermometer, °C — refreshed every 5 minutes", "z": "", "v": "18°C"}, {"t": "PRESSURE", "h": "PRESS", "d": "Barometric pressure where you are, hPa", "z": "", "v": "1013"}, {"t": "SEA_PRESSURE", "h": "SEA PRESS", "d": "Pressure corrected to sea level, hPa", "z": "", "v": "1019"}, {"t": "BATTERY", "h": "BATT", "d": "Battery charge, %", "z": "", "v": "82%"}, {"t": "BATTERY_HOURS", "h": "BATT HRS", "d": "Rough estimate of battery life left, hours", "z": "", "v": "14h"}, {"t": "GPS_ACCURACY", "h": "GPS", "d": "GPS quality — `GOOD`, `OK`, `POOR`, `OLD` or `NONE`", "z": "", "v": "GOOD"}, {"t": "CALORIES", "h": "CAL", "d": "Calories burned this ride, kcal", "z": "", "v": "980"}, {"t": "TRAINING_EFFECT", "h": "TE", "d": "Aerobic training effect score for this ride", "z": "", "v": "3.4"}]}], "palette": {"pwr": ["0xFFFFFF", "0x6ab5ff", "0x7bff98", "0xfffa6c", "0xff975e", "0xff6a7c", "0x9a78ff"], "hr": ["0xFFFFFF", "0x6ab5ff", "0x7bff98", "0xff975e", "0xff6a7c"], "cad": ["0x6ab5ff", "0x7bff98", "0xff975e"]}};
+const DATA = {"groups": [{"name": "Power", "items": [{"t": "PWR", "h": "PWR", "d": "Current power, W", "z": "pwr", "v": "212"}, {"t": "3S_PWR", "h": "3s PWR", "d": "Power averaged over the last 3 seconds, W", "z": "pwr", "v": "204"}, {"t": "5S_PWR", "h": "5s PWR", "d": "Power averaged over the last 5 seconds, W", "z": "pwr", "v": "201"}, {"t": "10S_PWR", "h": "10s PWR", "d": "Power averaged over the last 10 seconds, W", "z": "pwr", "v": "197"}, {"t": "30S_PWR", "h": "30s PWR", "d": "Power averaged over the last 30 seconds, W", "z": "pwr", "v": "193"}, {"t": "AVG_PWR", "h": "AVG PWR", "d": "Average power for the whole ride, W", "z": "", "v": "186"}, {"t": "MAX_PWR", "h": "MAX PWR", "d": "Highest power recorded this ride, W", "z": "", "v": "642"}, {"t": "LAP_PWR", "h": "LAP PWR", "d": "Average power for the current lap, W", "z": "", "v": "198"}, {"t": "LAST_LAP_PWR", "h": "LAST PWR", "d": "Average power for the previous lap, W", "z": "", "v": "205"}, {"t": "NP", "h": "NP", "d": "Normalized power for the ride, W", "z": "", "v": "201"}, {"t": "IF", "h": "IF", "d": "Intensity factor — normalized power divided by FTP", "z": "", "v": "1.01"}, {"t": "TSS", "h": "TSS", "d": "Training stress score accumulated this ride", "z": "", "v": "64"}, {"t": "PWR_PCT_FTP", "h": "% FTP", "d": "Current power as a percentage of FTP", "z": "pwr", "v": "102%"}, {"t": "W_KG", "h": "W/KG", "d": "Current power per kilogram, using the weight in your Garmin profile", "z": "pwr", "v": "2.9"}, {"t": "PWR_ZONE", "h": "PWR ZONE", "d": "Current power zone, 1 to 7", "z": "pwr", "v": "4"}, {"t": "KJ", "h": "KJ", "d": "Total work done this ride, kilojoules", "z": "", "v": "1240"}]}, {"name": "Heart rate", "items": [{"t": "HR", "h": "HR", "d": "Current heart rate, bpm", "z": "hr", "v": "148"}, {"t": "AVG_HR", "h": "AVG HR", "d": "Average heart rate for the whole ride, bpm", "z": "", "v": "142"}, {"t": "MAX_HR", "h": "MAX HR", "d": "Highest heart rate recorded this ride, bpm", "z": "", "v": "176"}, {"t": "LAP_HR", "h": "LAP HR", "d": "Average heart rate for the current lap, bpm", "z": "", "v": "145"}, {"t": "LAST_LAP_HR", "h": "LAST HR", "d": "Average heart rate for the previous lap, bpm", "z": "", "v": "139"}, {"t": "HR_PCT_MAX", "h": "% MAX HR", "d": "Current heart rate as a percentage of your maximum", "z": "hr", "v": "84%"}, {"t": "HR_PCT_RESERVE", "h": "% HRR", "d": "Current heart rate as a percentage of heart rate reserve", "z": "hr", "v": "71%"}, {"t": "HR_ZONE", "h": "HR ZONE", "d": "Current heart rate zone, 1 to 5", "z": "hr", "v": "2"}, {"t": "TIME_IN_ZONE", "h": "IN ZONE", "d": "Time spent in the current zone, restarting whenever the zone changes", "z": "hr", "v": "04:12"}]}, {"name": "Cadence", "items": [{"t": "CAD", "h": "CAD", "d": "Current cadence, rpm", "z": "cad", "v": "91"}, {"t": "AVG_CAD", "h": "AVG CAD", "d": "Average cadence for the whole ride, rpm", "z": "", "v": "87"}, {"t": "MAX_CAD", "h": "MAX CAD", "d": "Highest cadence recorded this ride, rpm", "z": "", "v": "118"}, {"t": "LAP_CAD", "h": "LAP CAD", "d": "Average cadence for the current lap, rpm", "z": "", "v": "89"}, {"t": "LAST_LAP_CAD", "h": "LAST CAD", "d": "Average cadence for the previous lap, rpm", "z": "", "v": "92"}]}, {"name": "Speed and distance", "items": [{"t": "SPD", "h": "SPD", "d": "Current speed, km/h", "z": "", "v": "31"}, {"t": "AVG_SPD", "h": "AVG SPD", "d": "Average speed for the whole ride, km/h", "z": "", "v": "28"}, {"t": "MAX_SPD", "h": "MAX SPD", "d": "Highest speed recorded this ride, km/h", "z": "", "v": "64"}, {"t": "LAP_SPD", "h": "LAP SPD", "d": "Average speed for the current lap, km/h", "z": "", "v": "29"}, {"t": "LAST_LAP_SPD", "h": "LAST SPD", "d": "Average speed for the previous lap, km/h", "z": "", "v": "30"}, {"t": "DIST", "h": "DIST", "d": "Distance covered this ride, km", "z": "", "v": "42.7"}, {"t": "LAP_DIST", "h": "LAP DIST", "d": "Distance covered in the current lap, km", "z": "", "v": "8.4"}, {"t": "LAST_LAP_DIST", "h": "LAST DIST", "d": "Distance covered in the previous lap, km", "z": "", "v": "9.1"}]}, {"name": "Time", "items": [{"t": "DAY_TIME_24", "h": "TIME", "d": "Time of day, 24-hour clock", "z": "", "v": "19:41"}, {"t": "DAY_TIME_12", "h": "TIME", "d": "Time of day, 12-hour clock", "z": "", "v": "7:41"}, {"t": "TIMER", "h": "TIMER", "d": "Riding time, with stops excluded by auto-pause", "z": "", "v": "1:24:07"}, {"t": "ELAPSED", "h": "ELAPSED", "d": "Total time since the ride started, stops included", "z": "", "v": "1:31:52"}, {"t": "STOPPED_TIME", "h": "STOPPED", "d": "Time spent stopped — elapsed time minus riding time", "z": "", "v": "07:45"}, {"t": "LAP_TIME", "h": "LAP TIME", "d": "Time on the current lap", "z": "", "v": "14:22"}, {"t": "LAST_LAP_TIME", "h": "LAST LAP", "d": "Time the previous lap took", "z": "", "v": "12:58"}, {"t": "LAP_NUMBER", "h": "LAP", "d": "Which lap you are on", "z": "", "v": "4"}]}, {"name": "Elevation", "items": [{"t": "ALT", "h": "ALT", "d": "Current altitude, m", "z": "", "v": "412"}, {"t": "ASCENT", "h": "ASCENT", "d": "Total climbing this ride, m", "z": "", "v": "684"}, {"t": "DESCENT", "h": "DESCENT", "d": "Total descending this ride, m", "z": "", "v": "611"}, {"t": "LAP_ASCENT", "h": "LAP ASC", "d": "Climbing on the current lap, m", "z": "", "v": "142"}, {"t": "LAP_DESCENT", "h": "LAP DESC", "d": "Descending on the current lap, m", "z": "", "v": "98"}, {"t": "GRD", "h": "GRD %", "d": "Current gradient, %", "z": "", "v": "-3"}, {"t": "VAM", "h": "VAM", "d": "Climb rate, metres per hour", "z": "", "v": "640"}]}, {"name": "Navigation", "items": [{"t": "DIST_TO_DEST", "h": "DIST LEFT", "d": "Distance still to go, km", "z": "", "v": "18.6"}, {"t": "TIME_TO_DEST", "h": "TIME LEFT", "d": "Estimated time still to go", "z": "", "v": "38:20"}, {"t": "ETA", "h": "ETA", "d": "Estimated time of arrival, clock time", "z": "", "v": "20:15"}, {"t": "ALT_AT_DEST", "h": "DEST ALT", "d": "Altitude at the destination, m", "z": "", "v": "96"}, {"t": "DIST_TO_NEXT", "h": "NEXT DIST", "d": "Distance to the next course point, km", "z": "", "v": "2.4"}, {"t": "ALT_AT_NEXT", "h": "NEXT ALT", "d": "Altitude at the next course point, m", "z": "", "v": "501"}, {"t": "NEXT_POINT", "h": "NEXT", "d": "Name of the next course point", "z": "", "v": "Col"}, {"t": "DEST_NAME", "h": "DEST", "d": "Name of the destination", "z": "", "v": "Home"}, {"t": "OFF_COURSE", "h": "OFF CRS", "d": "How far you are from the course, m", "z": "", "v": "12"}, {"t": "BEARING", "h": "BEARING", "d": "Direction to the destination, degrees", "z": "", "v": "142°"}, {"t": "HEADING", "h": "HEADING", "d": "Direction you are facing, degrees", "z": "", "v": "138°"}, {"t": "TRACK", "h": "TRACK", "d": "Direction you are travelling, from GPS, degrees", "z": "", "v": "140°"}, {"t": "BEARING_START", "h": "TO START", "d": "Direction back to where you started, degrees", "z": "", "v": "318°"}]}, {"name": "Drivetrain", "items": [{"t": "GEAR_FRONT", "h": "FRONT", "d": "Front chainring position", "z": "", "v": "2"}, {"t": "GEAR_REAR", "h": "REAR", "d": "Rear sprocket position", "z": "", "v": "7"}, {"t": "GEARS", "h": "GEARS", "d": "Both at once, as teeth if the groupset reports them, otherwise positions", "z": "", "v": "50/17"}, {"t": "GEAR_RATIO", "h": "RATIO", "d": "Front teeth divided by rear teeth", "z": "", "v": "2.94"}, {"t": "GEAR_MAP", "h": "", "d": "The drivetrain drawn out: chainrings, sprockets, the engaged one picked out", "z": "", "v": "52-15"}]}, {"name": "Weather", "items": [{"t": "WEATHER_TEMP", "h": "AIR TEMP", "d": "Air temperature from the forecast, °C", "z": "", "v": "16°C"}, {"t": "FEELS_LIKE", "h": "FEELS", "d": "Wind chill or heat index, °C", "z": "", "v": "14°C"}, {"t": "WIND_SPD", "h": "WIND", "d": "Wind speed, km/h", "z": "", "v": "12"}, {"t": "WIND_DIR", "h": "WIND DIR", "d": "Direction the wind blows from, degrees", "z": "", "v": "290°"}, {"t": "WIND_REL", "h": "WIND REL", "d": "Wind relative to your heading — `HEAD`, `TAIL` or `CROSS`", "z": "", "v": "HEAD"}, {"t": "HUMIDITY", "h": "HUMID", "d": "Relative humidity, %", "z": "", "v": "62%"}, {"t": "PRECIP_CHANCE", "h": "RAIN %", "d": "Chance of precipitation, %", "z": "", "v": "10%"}, {"t": "DEW_POINT", "h": "DEW PT", "d": "Dew point, °C", "z": "", "v": "--"}, {"t": "UV_INDEX", "h": "UV", "d": "UV index", "z": "", "v": "3"}]}, {"name": "Device and environment", "items": [{"t": "TEMP_C", "h": "TEMP", "d": "Temperature from the Edge's own thermometer, °C — refreshed every 5 minutes", "z": "", "v": "18°C"}, {"t": "PRESSURE", "h": "PRESS", "d": "Barometric pressure where you are, hPa", "z": "", "v": "1013"}, {"t": "SEA_PRESSURE", "h": "SEA PRESS", "d": "Pressure corrected to sea level, hPa", "z": "", "v": "1019"}, {"t": "BATTERY", "h": "BATT", "d": "Battery charge, %", "z": "", "v": "82%"}, {"t": "BATTERY_HOURS", "h": "BATT HRS", "d": "Rough estimate of battery life left, hours", "z": "", "v": "14h"}, {"t": "GPS_ACCURACY", "h": "GPS", "d": "GPS quality — `GOOD`, `OK`, `POOR`, `OLD` or `NONE`", "z": "", "v": "GOOD"}, {"t": "CALORIES", "h": "CAL", "d": "Calories burned this ride, kcal", "z": "", "v": "980"}, {"t": "TRAINING_EFFECT", "h": "TE", "d": "Aerobic training effect score for this ride", "z": "", "v": "3.4"}]}], "themes": {"day": {"palette": {"pwr": ["#ffffff", "#6ab5ff", "#7bff98", "#fffa6c", "#ff975e", "#ff6a7c", "#9a78ff"], "hr": ["#ffffff", "#6ab5ff", "#7bff98", "#ff975e", "#ff6a7c"], "cad": ["#6ab5ff", "#7bff98", "#ff975e"]}, "valueBg": "#ffffff", "valueFg": "#000000", "label": "#444444", "rule": "#aaaaaa", "status": "#ffffff"}, "night": {"palette": {"pwr": ["#000000", "#0055aa", "#005500", "#555500", "#aa5500", "#aa0000", "#5500aa"], "hr": ["#000000", "#0055aa", "#005500", "#aa5500", "#aa0000"], "cad": ["#0055aa", "#005500", "#aa5500"]}, "valueBg": "#000000", "valueFg": "#ffffff", "label": "#aaaaaa", "rule": "#555555", "status": "#ffffff"}}};
 
-/* ---- device constants, mirroring Config.mc ---- */
-const W = 246, H = 322, STATUS_H = 22, HEADER_H = 22, LIFT = 4, MAX_SETTING = 160;
-const RULE = "#aaaaaa", LABEL_FG = "#444444", VALUE_BG = "#ffffff", VALUE_FG = "#000000";
-const NUM_FONTS = [56, 42, 36];              // box heights: NUMBER_HOT / MEDIUM / MILD
-const TEXT_FONTS = [41, 26, 22, 20, 13];     // LARGE / MEDIUM / SMALL / TINY / XTINY
-const LABEL_FONT = 22;
+/* ---- supported models ----
+   Measured in the simulator with dc.getFontHeight() and getTextWidthInPixels().
+   num:  NUMBER_HOT / NUMBER_MEDIUM / NUMBER_MILD box heights
+   text: LARGE / MEDIUM / SMALL / TINY / XTINY box heights; SMALL is the label
+         font, and the header and status bands are exactly its height
+   tw, nw: how much wider the device's text and number fonts run than Roboto
+         Condensed at the same height. Only the 530, 830 and 1030 family use
+         Roboto Condensed; the newer ones set text in DejaVu Sans Condensed,
+         about a tenth wider, so the preview scales its measurements to match. */
+const DEVICES = [
+  {id:"edge530",      name:"Edge 530 / 830",          w:246, h:322, num:[56,42,36],   text:[41,26,22,20,13], tw:1.00, nw:1.00},
+  {id:"edge540",      name:"Edge 540 / 840",          w:246, h:322, num:[55,42,35],   text:[31,19,17,14,11], tw:1.12, nw:0.95},
+  {id:"edgemtb",      name:"Edge MTB",                w:240, h:320, num:[55,42,35],   text:[31,19,17,14,11], tw:1.12, nw:0.95},
+  {id:"edge1030",     name:"Edge 1030 / 1030 Plus",   w:282, h:470, num:[66,49,42],   text:[48,29,26,22,16], tw:0.99, nw:0.99},
+  {id:"edge1040",     name:"Edge 1040",               w:282, h:470, num:[64,48,42],   text:[36,22,19,17,13], tw:1.10, nw:0.95},
+  {id:"edgeexplore2", name:"Edge Explore 2",          w:240, h:400, num:[64,48,41],   text:[36,22,19,16,12], tw:1.16, nw:0.96},
+  {id:"edge550",      name:"Edge 550 / 850",          w:420, h:600, num:[109,82,71],  text:[61,38,33,28,21], tw:1.11, nw:0.93},
+  {id:"edgeexplore3", name:"Edge Explore 3 / 3 Plus", w:360, h:640, num:[109,82,71],  text:[61,38,33,28,21], tw:1.11, nw:0.97},
+  {id:"edge1050",     name:"Edge 1050 / 1060",        w:480, h:800, num:[109,82,71],  text:[61,38,33,28,21], tw:1.11, nw:0.93},
+];
+
+/* ---- device constants, mirroring Config.mc; set by useDevice() ---- */
+const LIFT = 4, MAX_SETTING = 160;
+let dev, W, H, STATUS_H, HEADER_H, NUM_FONTS, TEXT_FONTS, LABEL_FONT, LABEL_FONTS;
+
+function useDevice(id) {
+  dev = DEVICES.find(d => d.id === id) || DEVICES[0];
+  W = dev.w; H = dev.h;
+  NUM_FONTS = dev.num;
+  TEXT_FONTS = dev.text;
+  LABEL_FONT = dev.text[2];                         // FONT_SMALL
+  LABEL_FONTS = [dev.text[2], dev.text[3], dev.text[4]];   // SMALL, then TINY, XTINY
+  STATUS_H = HEADER_H = LABEL_FONT;
+  const root = document.documentElement.style;
+  root.setProperty("--w", W);
+  root.setProperty("--h", H);
+  root.setProperty("--lh", LABEL_FONT);
+}
 
 const BY_TOKEN = {};
 DATA.groups.forEach(g => g.items.forEach(i => { i.group = g.name; BY_TOKEN[i.t] = i; }));
@@ -212,6 +256,10 @@ const DEFAULT_ROWS = [
 
 let rows = JSON.parse(JSON.stringify(DEFAULT_ROWS));
 let active = 0, zone = 4, scale = 1;
+// "day" or "night": the field follows the Edge's own colour mode, and so the
+// preview offers both. Colours come from DATA.themes, i.e. from Config.mc.
+let theme = "day";
+const colours = () => DATA.themes[theme];
 let drag = null;   // {from:"palette"|"row", token, row, index}
 
 /* ---- text measurement, same rule the field uses ---- */
@@ -221,29 +269,31 @@ const widthOf = (text, size, bold) =>
   (ctx.font = `${bold ? 700 : 400} ${size}px "Roboto Condensed", sans-serif`, ctx.measureText(text).width);
 const isNumeric = t => /^[0-9:.\-]+$/.test(t);
 
+// Returns the font height and the horizontal scale to draw it at, so the preview
+// is as wide as the device's own font rather than as wide as Roboto Condensed.
 function pickFont(text, maxW, maxH) {
   if (isNumeric(text))
     for (const h of NUM_FONTS)
-      if (h <= maxH * 1.15 && widthOf(text, h, true) <= maxW) return h;
+      if (h <= maxH * 1.15 && widthOf(text, h, true) * dev.nw <= maxW) return [h, dev.nw];
   for (const h of TEXT_FONTS)
-    if (h <= maxH && widthOf(text, h, true) <= maxW) return h;
-  return 13;
+    if (h <= maxH && widthOf(text, h, true) * dev.tw <= maxW) return [h, dev.tw];
+  return [TEXT_FONTS[TEXT_FONTS.length - 1], dev.tw];
 }
 function fitLabel(text, maxW) {
-  for (const h of [LABEL_FONT, 20, 13]) if (widthOf(text, h, false) <= maxW) return h;
-  return 13;
+  for (const h of LABEL_FONTS) if (widthOf(text, h, false) * dev.tw <= maxW) return h;
+  return LABEL_FONTS[LABEL_FONTS.length - 1];
 }
 
 /* ---- zone colour for a tinted field ---- */
 function zoneFill(item) {
-  if (!item.z) return VALUE_BG;
-  const p = DATA.palette[item.z];
+  if (!item.z) return colours().valueBg;
+  const p = colours().palette[item.z];
   const idx = Math.min(Math.max(zone, 1), p.length) - 1;
-  return p[idx].replace("0x", "#");
+  return p[idx];
 }
 function zoneBadge(item) {
   if (!item.z || item.z === "cad") return null;
-  const p = DATA.palette[item.z];
+  const p = colours().palette[item.z];
   return "z" + Math.min(Math.max(zone, 1), p.length);
 }
 
@@ -257,8 +307,10 @@ function renderPalette() {
       </button>
       <div class="chips" ${gi < 3 ? "" : "hidden"}>
         ${g.items.map(i => {
-          const p = i.z ? DATA.palette[i.z] : null;
-          const dot = p ? `<span class="dot" style="--z1:${p[1].replace("0x","#")};--z2:${p[p.length-1].replace("0x","#")}"></span>` : "";
+          // The chip dots keep the day colours whatever the preview shows: the
+          // night fills are too dark to tell apart at this size.
+          const p = i.z ? DATA.themes.day.palette[i.z] : null;
+          const dot = p ? `<span class="dot" style="--z1:${p[1]};--z2:${p[p.length-1]}"></span>` : "";
           return `<span class="chip" draggable="true" data-token="${i.t}" title="${i.d.replace(/"/g,"&quot;")}">
                     ${dot}<span>${i.h}</span><code>${i.t}</code></span>`;
         }).join("")}
@@ -376,6 +428,11 @@ function addTile(token) {
 function renderScreen() {
   document.documentElement.style.setProperty("--u", scale + "px");
   const screen = document.getElementById("screen");
+  const c = colours();
+  screen.style.setProperty("--rule", c.rule);
+  screen.style.setProperty("--label", c.label);
+  screen.style.setProperty("--vfg", c.valueFg);
+  screen.style.setProperty("--status", c.status);
   const live = rows.filter(r => r.tiles.length);
   if (!live.length) { screen.innerHTML = ""; return; }
 
@@ -394,7 +451,8 @@ function renderScreen() {
         ${r.tiles.map((t, i) => {
           const it = BY_TOKEN[t] || {v:"--"};
           const align = n === 1 ? "center" : i === 0 ? "flex-start" : i === n-1 ? "flex-end" : "center";
-          return `<span style="flex:1;display:flex;justify-content:${align}">${it.v}</span>`;
+          return `<span style="flex:1;display:flex;justify-content:${align}">
+            <span style="display:inline-block;transform:scaleX(${dev.tw});transform-origin:${align === "flex-start" ? "left" : align === "flex-end" ? "right" : "center"}">${it.v}</span></span>`;
         }).join("")}</div>`;
     }
 
@@ -406,13 +464,13 @@ function renderScreen() {
         const badge = zoneBadge(it);
         const labelText = it.h || t;
         const lf = fitLabel(labelText + (badge ? "  " + badge : ""), cellW - 6);
-        const vf = pickFont(it.v, cellW - 6, valueH);
+        const [vf, vs] = pickFont(it.v, cellW - 6, valueH);
         return `<div class="stile" style="background:${fill}">
           ${ri > 0 ? `<div class="rule"></div>` : ""}
-          <div class="lb" style="font-size:calc(${lf}*var(--u))">
+          <div class="lb" style="font-size:calc(${lf}*var(--u));transform:scaleX(${dev.tw})">
             <span>${labelText}</span>${badge ? `<b>${badge}</b>` : ""}</div>
           <div class="vl" style="top:calc(${HEADER_H}*var(--u));height:calc(${valueH}*var(--u));
-                                 font-size:calc(${vf}*var(--u));transform:translateY(calc(${-LIFT}*var(--u)))">
+                                 font-size:calc(${vf}*var(--u));transform:translateY(calc(${-LIFT}*var(--u))) scaleX(${vs})">
             ${it.v}</div>
         </div>`;
       }).join("")}</div>`;
@@ -464,12 +522,36 @@ scaleBtns.onclick = e => { const b = e.target.closest("button"); if (!b) return;
   scale = +b.dataset.s; syncScale(); renderScreen(); };
 function syncScale(){ scaleBtns.querySelectorAll("button").forEach(b => b.classList.toggle("sel", +b.dataset.s === scale)); }
 
+const THEME_KEY = "zebratiles.theme";
+const themeBtns = document.getElementById("themeBtns");
+themeBtns.innerHTML = [["day","Day"],["night","Night"]].map(([id, name]) =>
+  `<button class="wide" data-t="${id}">${name}</button>`).join(" ");
+themeBtns.onclick = e => { const b = e.target.closest("button"); if (!b) return;
+  theme = b.dataset.t; syncTheme(); renderScreen();
+  try { localStorage.setItem(THEME_KEY, theme); } catch {} };
+function syncTheme(){ themeBtns.querySelectorAll("button").forEach(b => b.classList.toggle("sel", b.dataset.t === theme)); }
+try { if (DATA.themes[localStorage.getItem(THEME_KEY)]) theme = localStorage.getItem(THEME_KEY); } catch {}
+
 document.addEventListener("dragend", () => {
   document.querySelectorAll(".gap.on").forEach(el => el.classList.remove("on"));
   drag = null;
 });
 
-renderPalette(); syncZone(); syncScale();
+const DEVICE_KEY = "zebratiles.device";
+const devicePick = document.getElementById("device");
+devicePick.innerHTML = DEVICES.map(d =>
+  `<option value="${d.id}">${d.name} &middot; ${d.w}&times;${d.h}</option>`).join("");
+let savedDevice = null;
+try { savedDevice = localStorage.getItem(DEVICE_KEY); } catch {}
+useDevice(savedDevice);
+devicePick.value = dev.id;
+devicePick.onchange = () => {
+  useDevice(devicePick.value);
+  try { localStorage.setItem(DEVICE_KEY, dev.id); } catch {}
+  renderScreen();
+};
+
+renderPalette(); syncZone(); syncScale(); syncTheme();
 document.fonts.ready.then(render);
 render();
 </script>

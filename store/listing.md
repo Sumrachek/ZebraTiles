@@ -11,16 +11,16 @@ ZebraTiles
 
 ## Short description / tagline
 
-A full-screen tile grid for the Edge 530, with zone-coloured power, heart rate and cadence.
+A full-screen tile grid for Edge bike computers, with zone-coloured power, heart rate and cadence.
 
 ## Description
 
 ```
-ZebraTiles turns one data screen of your Edge 530 into a grid of tiles that you lay out yourself, and colours the important ones by training zone so you can read your effort at a glance.
+ZebraTiles turns one data screen of your Edge into a grid of tiles that you lay out yourself, and colours the important ones by training zone so you can read your effort at a glance.
 
 ZONE COLOURS
 - Power and heart rate tiles are filled with the colour of your current zone and carry a zone badge (z1, z2, ...).
-- Heart rate zones come from your Garmin profile. Power zones are calculated from the FTP you enter in the settings, because the Edge 530 does not share its power zones with apps.
+- Heart rate zones come from your Garmin profile. Power zones are calculated from the FTP you enter in the settings, so they match on every Edge.
 - As you approach the next zone, a stripe of its colour slides in from the edge of the tile, so you see a zone change coming before it happens.
 - Cadence is coloured against a target range you choose: blue below it, green inside it, orange above it.
 - Averages, maximums and lap figures stay on a plain background, so a colour always means what you are doing right now.
@@ -53,11 +53,29 @@ GOOD TO KNOW
 SETTINGS (in Garmin Connect)
 - FTP: the basis for power zones.
 - Cadence target, low and high.
-- Header background and text colour: hex, e.g. 2B2B2B.
+- Chainrings and cassette, teeth: e.g. 34 50 and 11 12 13 14 15 17 19 21 24 28. Optional; GEAR_MAP uses them to draw your real cassette and to show the rear gear on groupsets that do not broadcast it.
 - Layout: see above.
 
 Layout builder: https://sumrachek.github.io/ZebraTiles/
 Guide and field list: https://github.com/Sumrachek/ZebraTiles/blob/main/FIELDS.md
+```
+
+## What's new (1.1.0)
+
+```
+More Edge models. ZebraTiles now runs on the Edge 530, 540 / 540 Solar, 550, 830, 840 / 840 Solar, 850, 1030, 1030 Bontrager, 1030 Plus, 1040 / 1040 Solar, 1050, 1060, Edge MTB, Edge Explore 2, Edge Explore 3 and Explore 3 Plus.
+- The tiles, labels and status strip size themselves to each model's screen and fonts.
+- Dew point now shows on the models that provide it (the 540, 840, 1040 and newer).
+- On the Edge Explore 2 and 3 the drivetrain fields stay blank: those devices do not pass shifting data to apps.
+- The layout builder has a device picker, so the preview matches your Edge.
+
+New settings: chainrings and cassette, as tooth counts.
+- GEAR_MAP draws your real cassette instead of an even staircase.
+- The rear gear shows even on groupsets that do not broadcast the sprocket size.
+
+Night colours. When your Edge switches to night mode, by hand or automatically at sunset, ZebraTiles switches with it.
+- Plain tiles turn black with white figures, and the zone colours become darker, so the screen does not glare in the dark.
+- The layout builder has a Day / Night switch to preview both.
 ```
 
 ## What's new (1.0.0)
@@ -90,7 +108,10 @@ Data fields (cycling)
 
 ## Devices
 
-Edge 530 only, for 1.0.0.
+Edge 530, 540 / 540 Solar, 550, 830, 840 / 840 Solar, 850, 1030, 1030 Bontrager,
+1030 Plus, 1040 / 1040 Solar, 1050, 1060, Edge MTB, Edge Explore 2, Edge Explore 3 and
+Explore 3 Plus. The .iq bundle covers them all; on the Explore models the drivetrain fields
+stay blank, as those devices do not pass shifting data to apps.
 
 ## Price
 

@@ -8,8 +8,8 @@ class ZebraTilesView extends WatchUi.DataField {
 
     hidden var mRows as Array<Row>;
     hidden var mMetrics as Metrics;
-    hidden var mHeaderBg as Number = Config.HEADER_BG;
-    hidden var mHeaderFg as Number = Config.HEADER_FG;
+    hidden var mRingTeeth as Array<Number> = [] as Array<Number>;
+    hidden var mCogTeeth as Array<Number> = [] as Array<Number>;
 
     // Ordered widest-first so the first fit is the biggest that fits.
     hidden var mNumberFonts as Array<FontDefinition> = [
@@ -24,6 +24,27 @@ class ZebraTilesView extends WatchUi.DataField {
         Graphics.FONT_TINY,
         Graphics.FONT_XTINY
     ] as Array<FontDefinition>;
+
+    // One header font for the whole screen, picked by the tightest tile so that
+    // no header is drawn bigger than its neighbours. Worked out again when the
+    // layout or the field's size changes.
+    hidden var mHeaderFont as FontDefinition? = null;
+    hidden var mHeaderFontW as Number = -1;
+    hidden var mHeaderFontH as Number = -1;
+
+    //! The colours of the current theme, day or night. Picked once per frame in
+    //! applyTheme() and read from here, so the draw calls - the gear map's above
+    //! all, which already sits at the edge of the stack - get no deeper.
+    hidden var mNight as Boolean = false;
+    hidden var mHeaderFg as Number = Config.HEADER_FG;
+    hidden var mHeaderRule as Number = Config.HEADER_RULE;
+    hidden var mZoneFg as Number = Config.ZONE_FG;
+    hidden var mValueBg as Number = Config.VALUE_BG;
+    hidden var mValueFg as Number = Config.VALUE_FG;
+    hidden var mStatusFg as Number = Config.STATUS_FG;
+    hidden var mGearBar as Number = Config.GEAR_BAR;
+    hidden var mGearHilite as Number = Config.GEAR_HILITE;
+    hidden var mGradeColors as Array<Number> = Config.GRADE_COLORS as Array<Number>;
 
     hidden var mTextFonts as Array<FontDefinition> = [
         Graphics.FONT_LARGE,
@@ -43,8 +64,8 @@ class ZebraTilesView extends WatchUi.DataField {
     //! Re-read the app settings. Called on start and whenever they change.
     function reload() as Void {
         Zones.reload();
-        mHeaderBg = colorSetting("headerBg", Config.HEADER_BG);
-        mHeaderFg = colorSetting("headerFg", Config.HEADER_FG);
+        mRingTeeth = teethSetting("chainrings", Config.MAX_CHAINRINGS);
+        mCogTeeth = teethSetting("cassette", Config.MAX_SPROCKETS);
 
         var text = null;
         try {
@@ -56,12 +77,25 @@ class ZebraTilesView extends WatchUi.DataField {
             text = Config.DEFAULT_LAYOUT;
         }
         mRows = Spec.parse(text as String);
+        mHeaderFont = null;
     }
 
-    //! Colours arrive as hex text - "2B2B2B", or "#2B2B2B" - so they can be typed
-    //! into the phone app, which offers no colour picker. Anything unparseable
-    //! falls back to the built-in value rather than painting a surprise colour.
-    hidden function colorSetting(key as String, fallback as Number) as Number {
+    //! The drivetrain, smallest first, from a setting such as "11 12 13 15 17".
+    //!
+    //! Worth filling in for two reasons. Many groupsets leave the sprocket's tooth
+    //! count out of the ANT+ shifting message - it is an optional field - and
+    //! broadcast zero for it, so the rear half of the gear cannot be read off the
+    //! air. And knowing every sprocket turns the bar ramp from an even staircase
+    //! into the real profile of the cassette. A given list also sets how many bars
+    //! are drawn, in place of the count the derailleur reports.
+    //!
+    //! Spaces and commas both separate, and the order does not matter. A dash is
+    //! not a separator, so a range such as "11-34" is rejected rather than read as
+    //! a two-sprocket cassette. One bad entry, or more entries than the bars
+    //! allow, empties the whole list: a half-right drivetrain would put the
+    //! highlight on the wrong bar.
+    hidden function teethSetting(key as String, maxCount as Number) as Array<Number> {
+        var none = [] as Array<Number>;
         var raw = null;
         try {
             raw = Application.Properties.getValue(key);
@@ -69,38 +103,42 @@ class ZebraTilesView extends WatchUi.DataField {
             raw = null;
         }
         if (!(raw instanceof Lang.String)) {
-            return fallback;
+            return none;
         }
-        return parseColor(raw as String, fallback);
+
+        var parts = Spec.splitOn(raw as String, [' ', ',', ';', '\t'] as Array<Char>);
+        if (parts.size() > maxCount) {
+            return none;
+        }
+        var teeth = [] as Array<Number>;
+        for (var i = 0; i < parts.size(); i++) {
+            var n = wholeNumber(parts[i]);
+            if (n == null || n < 5 || n > 99) {
+                return none;
+            }
+            // Insertion sort: the lists are a dozen entries at most.
+            teeth.add(n as Number);
+            for (var j = teeth.size() - 1; j > 0 && teeth[j - 1] > teeth[j]; j--) {
+                var swap = teeth[j];
+                teeth[j] = teeth[j - 1];
+                teeth[j - 1] = swap;
+            }
+        }
+        return teeth;
     }
 
-    hidden function parseColor(input as String, fallback as Number) as Number {
-        var text = input;
-        if (text.length() == 7) {
-            var head = text.substring(0, 1);
-            var body = text.substring(1, 7);
-            if (head != null && body != null && head.equals("#")) {
-                text = body;
-            }
+    //! toNumber() reads "12x" as 12, so every character is checked first.
+    hidden function wholeNumber(text as String) as Number? {
+        var chars = text.toCharArray();
+        if (chars.size() == 0 || chars.size() > 2) {
+            return null;
         }
-        if (text.length() != 6) {
-            return fallback;
-        }
-        // toNumberWithBase() parses a valid prefix and silently drops the rest,
-        // so "12345G" would come back as 0x12345 - check every digit first.
-        var chars = text.toUpper().toCharArray();
         for (var i = 0; i < chars.size(); i++) {
-            var c = chars[i];
-            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) {
-                return fallback;
+            if (chars[i] < '0' || chars[i] > '9') {
+                return null;
             }
         }
-
-        var value = text.toNumberWithBase(16);
-        if (value == null || value < 0 || value > 0xFFFFFF) {
-            return fallback;
-        }
-        return value;
+        return text.toNumber();
     }
 
     function compute(info as Activity.Info) as Void {
@@ -118,6 +156,7 @@ class ZebraTilesView extends WatchUi.DataField {
     function onUpdate(dc as Dc) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
+        applyTheme();
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -129,13 +168,26 @@ class ZebraTilesView extends WatchUi.DataField {
             }
         }
         var tileRows = mRows.size() - statusRows;
+        var labelH = dc.getFontHeight(Config.LABEL_FONT);
 
-        var statusH = (h < 120) ? 16 : Config.STATUS_H;
+        var statusH = (h < 120) ? 16 : labelH;
         if (statusRows * statusH > h / 2) {
             statusH = (h / 2) / (statusRows > 0 ? statusRows : 1);
         }
         var tileBand = h - (statusH * statusRows);
         var tileH = (tileRows > 0) ? tileBand.toFloat() / tileRows : 0.0;
+
+        // Tile rows differ by at most a pixel of rounding; the header band is
+        // worked out once from the shorter of them so every header matches.
+        // A tile too short to leave its value 1.5 bands below the header gives
+        // the header a third of itself instead.
+        var rowFloor = tileH.toNumber();
+        var headerH = (rowFloor * 2 < labelH * 5) ? rowFloor / 3 : labelH;
+        if (mHeaderFont == null || mHeaderFontW != w || mHeaderFontH != h) {
+            mHeaderFont = headerFontFor(dc, w, headerH);
+            mHeaderFontW = w;
+            mHeaderFontH = h;
+        }
 
         var edge = 0.0;
         for (var i = 0; i < mRows.size(); i++) {
@@ -148,46 +200,66 @@ class ZebraTilesView extends WatchUi.DataField {
             if (row.isStatus) {
                 drawStatusRow(dc, row, y, w, rowH);
             } else {
-                drawTileRow(dc, row, y, w, rowH);
+                drawTileRow(dc, row, y, w, rowH, headerH);
             }
         }
     }
 
-    hidden function drawTileRow(dc as Dc, row as Row, y as Number, w as Number, h as Number) as Void {
+    //! Follows the device's own day / night colours, the same switch Garmin's
+    //! data fields obey: getBackgroundColor() is black while the Edge shows night
+    //! colours, whether set by hand or by the Auto mode at sunset.
+    hidden function applyTheme() as Void {
+        var night = getBackgroundColor() == Graphics.COLOR_BLACK;
+        if (night == mNight) {
+            return;
+        }
+        mNight = night;
+        mHeaderFg = night ? Config.HEADER_FG_NIGHT : Config.HEADER_FG;
+        mHeaderRule = night ? Config.HEADER_RULE_NIGHT : Config.HEADER_RULE;
+        mZoneFg = night ? Config.ZONE_FG_NIGHT : Config.ZONE_FG;
+        mValueBg = night ? Config.VALUE_BG_NIGHT : Config.VALUE_BG;
+        mValueFg = night ? Config.VALUE_FG_NIGHT : Config.VALUE_FG;
+        mStatusFg = night ? Config.STATUS_FG_NIGHT : Config.STATUS_FG;
+        mGearBar = night ? Config.GEAR_BAR_NIGHT : Config.GEAR_BAR;
+        mGearHilite = night ? Config.GEAR_HILITE_NIGHT : Config.GEAR_HILITE;
+        mGradeColors = (night ? Config.GRADE_COLORS_NIGHT : Config.GRADE_COLORS) as Array<Number>;
+    }
+
+    hidden function drawTileRow(dc as Dc, row as Row, y as Number, w as Number, h as Number, headerH as Number) as Void {
         // Tiles butt up against each other: no vertical rule inside a row.
         var n = row.cells.size();
         for (var i = 0; i < n; i++) {
             var left = (i * w) / n;
             var right = ((i + 1) * w) / n;
-            drawTile(dc, row.cells[i], left, y, right - left, h);
+            drawTile(dc, row.cells[i], left, y, right - left, h, headerH);
         }
     }
 
-    hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number) as Void {
+    //! headerH is the header band, the same for every tile on the screen.
+    hidden function drawTile(dc as Dc, cell as Cell, x as Number, y as Number, w as Number, h as Number, headerH as Number) as Void {
         if (Fields.isGraphic(cell.code)) {
-            dc.setColor(Config.VALUE_BG, Config.VALUE_BG);
+            dc.setColor(mValueBg, mValueBg);
             dc.fillRectangle(x, y, w, h);
             if (!headerIsPainted() && y > 0) {
-                dc.setColor(Config.HEADER_RULE, Config.HEADER_RULE);
+                dc.setColor(mHeaderRule, mHeaderRule);
                 dc.fillRectangle(x, y, w, 1);
             }
             drawGearMap(dc, x, y, w, h);
             return;
         }
 
-        var headerH = (h < 56) ? h / 3 : Config.HEADER_H;
         var valueH = h - headerH;
 
         var kind = Fields.zoneKind(cell.code);
         var input = Fields.zoneInput(cell.code, mMetrics);
         var zone = Zones.of(kind, input);
-        var fill = Zones.colorFor(kind, zone);
+        var fill = Zones.colorFor(kind, zone, mNight);
         if (fill == null) {
-            fill = Config.VALUE_BG;
+            fill = mValueBg;
         }
 
         if (headerIsPainted()) {
-            dc.setColor(mHeaderBg, mHeaderBg);
+            dc.setColor(Config.HEADER_BG, Config.HEADER_BG);
             dc.fillRectangle(x, y, w, headerH);
             dc.setColor(fill, fill);
             dc.fillRectangle(x, y + headerH, w, valueH);
@@ -200,7 +272,7 @@ class ZebraTilesView extends WatchUi.DataField {
             dc.fillRectangle(x, y, w, h);
             drawEdgeHints(dc, kind, input, zone, x, y, w, h);
             if (y > 0) {
-                dc.setColor(Config.HEADER_RULE, Config.HEADER_RULE);
+                dc.setColor(mHeaderRule, mHeaderRule);
                 dc.fillRectangle(x, y, w, 1);
             }
         }
@@ -216,7 +288,7 @@ class ZebraTilesView extends WatchUi.DataField {
         if (!headerIsPainted()) {
             middle -= Config.HEADERLESS_VALUE_LIFT;
         }
-        dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mValueFg, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, x + (w / 2), middle, font, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -224,26 +296,26 @@ class ZebraTilesView extends WatchUi.DataField {
     //! That covers both Graphics.COLOR_TRANSPARENT, which is -1, and the
     //! 0xFF000000 spelling, since Monkey C colours carry no alpha channel.
     hidden function headerIsPainted() as Boolean {
-        return mHeaderBg >= 0 && mHeaderBg <= 0xFFFFFF;
+        return Config.HEADER_BG >= 0 && Config.HEADER_BG <= 0xFFFFFF;
     }
 
 
     //! Chainrings on the left, sprockets on the right, both as a ramp of bars with
     //! the engaged one picked out, and the ratio written across the top.
     //!
-    //! The ramps are schematic: the drivetrain broadcasts the engaged sprocket's
-    //! teeth and the number of positions, never the size of every sprocket, so the
-    //! steps are even. Chainrings descend to the right and sprockets climb, both
+    //! Without the chainring and cassette settings the ramps are schematic: the
+    //! drivetrain broadcasts the engaged sprocket's teeth and the number of
+    //! positions, never the size of every sprocket, so the steps are even. Chainrings descend to the right and sprockets climb, both
     //! fixed whichever way the indices happen to run, so the shape of the picture
     //! never changes and only the highlight moves.
     hidden function drawGearMap(dc as Dc, x as Number, y as Number, w as Number, h as Number) as Void {
         var m = mMetrics;
-        var ringTeeth = Config.CHAINRING_TEETH;
-        var cogTeeth = Config.CASSETTE_TEETH;
+        var ringTeeth = mRingTeeth;
+        var cogTeeth = mCogTeeth;
         var rings = (ringTeeth.size() > 0)
-            ? ringTeeth.size() : count(m.frontMax, Config.CHAINRINGS_FALLBACK, 1, 3);
+            ? ringTeeth.size() : count(m.frontMax, Config.CHAINRINGS_FALLBACK, 1, Config.MAX_CHAINRINGS);
         var cogs = (cogTeeth.size() > 0)
-            ? cogTeeth.size() : count(m.rearMax, Config.SPROCKETS_FALLBACK, 5, 14);
+            ? cogTeeth.size() : count(m.rearMax, Config.SPROCKETS_FALLBACK, 5, Config.MAX_SPROCKETS);
 
         var pad = Config.PAD;
         var innerW = w - (2 * pad);
@@ -289,7 +361,7 @@ class ZebraTilesView extends WatchUi.DataField {
         var textH = (innerH * (1.0 - (Config.GEAR_COG_MAX / 2.0))
             * Config.GEAR_TEXT_SCALE).toNumber();
         var font = pickFont(dc, text, cassetteW.toNumber(), textH);
-        dc.setColor(Config.VALUE_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mValueFg, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, cassetteLeft.toNumber(), y + pad + (textH / 2),
             font, text, Graphics.TEXT_JUSTIFY_LEFT);
     }
@@ -312,7 +384,7 @@ class ZebraTilesView extends WatchUi.DataField {
     }
 
     //! The engaged gear as teeth. Prefers what the drivetrain broadcasts, and
-    //! falls back to the configured list - which is the only way to get the rear
+    //! falls back to the lists from the settings - which is the only way to get the rear
     //! number on a groupset that broadcasts zero for it.
     hidden function gearText(m as Metrics, ringTeeth as Array<Number>, cogTeeth as Array<Number>,
                              front as Number, rear as Number) as String {
@@ -354,7 +426,7 @@ class ZebraTilesView extends WatchUi.DataField {
     //! The arrowhead is rows rather than Dc.fillPolygon, which is documented since
     //! API 1.0.0 and listed in the device's own API, yet throws when invoked here.
     hidden function drawBar(dc as Dc, left as Number, floorY as Number, width as Number, height as Number, on as Boolean, ceiling as Number) as Void {
-        var color = on ? Config.GEAR_HILITE : Config.GEAR_BAR;
+        var color = on ? mGearHilite : mGearBar;
         dc.setColor(color, color);
         var top = floorY - height;
         dc.fillRectangle(left, top, width, height);
@@ -418,7 +490,7 @@ class ZebraTilesView extends WatchUi.DataField {
 
     //! The ramp read off the size of the gradient, held at both ends.
     hidden function gradeColor(grade as Numeric) as Number {
-        var stops = Config.GRADE_COLORS;
+        var stops = mGradeColors;
         var last = stops.size() - 1;
         var size = (grade < 0) ? -grade : grade;
         if (size >= Config.GRADE_MAX_PCT) {
@@ -451,7 +523,7 @@ class ZebraTilesView extends WatchUi.DataField {
         var rising = Zones.upperHint(kind, value, zone);
         if (rising > 0) {
             var band = (widest * rising).toNumber();
-            var color = Zones.colorFor(kind, zone + 1);
+            var color = Zones.colorFor(kind, zone + 1, mNight);
             if (band > 0 && color != null) {
                 dc.setColor(color, color);
                 dc.fillRectangle(x + w - band, y, band, h);
@@ -461,7 +533,7 @@ class ZebraTilesView extends WatchUi.DataField {
         var falling = Zones.lowerHint(kind, value, zone);
         if (falling > 0) {
             var band = (widest * falling).toNumber();
-            var color = Zones.colorFor(kind, zone - 1);
+            var color = Zones.colorFor(kind, zone - 1, mNight);
             if (band > 0 && color != null) {
                 dc.setColor(color, color);
                 dc.fillRectangle(x, y, band, h);
@@ -469,26 +541,64 @@ class ZebraTilesView extends WatchUi.DataField {
         }
     }
 
-    //! Label, and for zoned tiles the zone badge, centred together as one group.
-    hidden function drawHeader(dc as Dc, label as String, badge as String?, x as Number, y as Number, w as Number, h as Number) as Void {
-        var gap = (badge != null) ? Config.LABEL_GAP : 0;
-        var avail = w - (2 * Config.PAD);
-
-        // Largest chrome font whose label-plus-badge group still fits the tile.
-        var font = mLabelFonts[mLabelFonts.size() - 1];
-        var labelW = 0;
-        var badgeW = 0;
-        for (var i = 0; i < mLabelFonts.size(); i++) {
-            var candidate = mLabelFonts[i];
-            var lw = dc.getTextWidthInPixels(label, candidate);
-            var bw = (badge != null) ? dc.getTextWidthInPixels(badge, candidate) : 0;
-            font = candidate;
-            labelW = lw;
-            badgeW = bw;
-            if (dc.getFontHeight(candidate) <= h && lw + gap + bw <= avail) {
-                break;
+    //! The largest chrome font in which every tile's header fits its tile.
+    //!
+    //! Each tile picking its own font let a long label in a narrow tile drop to a
+    //! smaller size than the rest of the screen. Zoned tiles reserve room for the
+    //! widest badge they could show, so the font does not change mid-ride as the
+    //! zone or the sensor comes and goes.
+    hidden function headerFontFor(dc as Dc, w as Number, headerH as Number) as FontDefinition {
+        var last = mLabelFonts.size() - 1;
+        for (var f = 0; f < last; f++) {
+            var font = mLabelFonts[f];
+            if (dc.getFontHeight(font) <= headerH && headersFit(dc, font, w)) {
+                return font;
             }
         }
+        return mLabelFonts[last];
+    }
+
+    hidden function headersFit(dc as Dc, font as FontDefinition, w as Number) as Boolean {
+        var badgeW = 0;
+        for (var z = 1; z <= 9; z++) {
+            var bw = dc.getTextWidthInPixels("z" + z.format("%d"), font);
+            if (bw > badgeW) {
+                badgeW = bw;
+            }
+        }
+
+        for (var r = 0; r < mRows.size(); r++) {
+            var row = mRows[r];
+            if (row.isStatus) {
+                continue;
+            }
+            var n = row.cells.size();
+            for (var i = 0; i < n; i++) {
+                var cell = row.cells[i];
+                if (Fields.isGraphic(cell.code)) {
+                    continue;
+                }
+                var cellW = ((i + 1) * w) / n - (i * w) / n;
+                var need = dc.getTextWidthInPixels(Fields.labelFor(cell), font);
+                var kind = Fields.zoneKind(cell.code);
+                if (kind != Fields.Z_NONE && kind != Fields.Z_CAD) {
+                    need += Config.LABEL_GAP + badgeW;
+                }
+                if (need > cellW - (2 * Config.PAD)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    //! Label, and for zoned tiles the zone badge, centred together as one group,
+    //! in the screen-wide header font.
+    hidden function drawHeader(dc as Dc, label as String, badge as String?, x as Number, y as Number, w as Number, h as Number) as Void {
+        var font = (mHeaderFont != null) ? mHeaderFont as FontDefinition : Config.LABEL_FONT;
+        var gap = (badge != null) ? Config.LABEL_GAP : 0;
+        var labelW = dc.getTextWidthInPixels(label, font);
+        var badgeW = (badge != null) ? dc.getTextWidthInPixels(badge, font) : 0;
 
         var start = x + ((w - (labelW + gap + badgeW)) / 2);
         if (start < x + Config.PAD) {
@@ -502,7 +612,7 @@ class ZebraTilesView extends WatchUi.DataField {
         if (badge != null) {
             // Without a header strip the badge sits on the zone fill, the same
             // surface the value does, so it takes the value's colour to stay legible.
-            var badgeColor = headerIsPainted() ? Config.ZONE_FG : Config.VALUE_FG;
+            var badgeColor = headerIsPainted() ? mZoneFg : mValueFg;
             dc.setColor(badgeColor, Graphics.COLOR_TRANSPARENT);
             drawCentered(dc, start + labelW + gap, mid, font, badge,
                 Graphics.TEXT_JUSTIFY_LEFT);
@@ -513,7 +623,7 @@ class ZebraTilesView extends WatchUi.DataField {
     hidden function drawStatusRow(dc as Dc, row as Row, y as Number, w as Number, h as Number) as Void {
         var n = row.cells.size();
         var mid = y + (h / 2);
-        dc.setColor(Config.STATUS_FG, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(mStatusFg, Graphics.COLOR_TRANSPARENT);
 
         for (var i = 0; i < n; i++) {
             var left = (i * w) / n;
